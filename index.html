@@ -2807,7 +2807,15 @@
       byId('mapa-loc-picker').style.display = 'block';
       byId('mapa-loc-active').style.display = 'none';
       setMapInteractive(false);
+      // Cal invalidar la mida abans d'ajustar: el layout acaba de canviar
+      // (active→picker) i el sidebar torna a tenir una altura diferent. I
+      // també cal refer-ho després del settle, pel mateix motiu que a
+      // setUserLocation (canvi de dvh per iOS Safari).
+      if (map) map.invalidateSize();
       fitStaticView();
+      if (window.innerWidth <= 720 && map) {
+        setTimeout(() => { if (!map) return; map.invalidateSize(); fitStaticView(); }, 450);
+      }
     }
 
     function updateUserLayers() {
