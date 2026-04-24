@@ -1136,11 +1136,10 @@
           </button>
 
           <div class="mapa-search-inp">
-            <input type="search" id="mapa-search-input" placeholder="Municipi o codi postal…" autocomplete="off">
+            <input type="search" id="mapa-search-input" placeholder="Municipi, codi postal o clica el mapa…" autocomplete="off">
             <div class="sugs" id="mapa-search-sugs" style="display:none"></div>
           </div>
 
-          <div class="mapa-divider">o clica sobre el mapa</div>
         </div>
       </div>
 
@@ -2725,16 +2724,11 @@
       setMapInteractive(true);
       updateUserLayers();
       updateResultList();
-      // A mòbil, el sidebar+resultats ocupa molt espai sobre el mapa.
-      // Després de triar ubicació fem scroll perquè el mapa entri al viewport
-      // amb el cercle i el centre visibles.
-      if (window.innerWidth <= 720) {
-        setTimeout(() => {
-          const el = byId('mapa-container');
-          if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Invalida la mida perquè Leaflet recalculi després del layout/scroll
-          if (map) setTimeout(() => map.invalidateSize(), 350);
-        }, 100);
+      // A mòbil no fem auto-scroll al mapa: l'usuari es quedaria sense
+      // accés als controls (radi, picker) que estan al sidebar superior.
+      // Només invalidem la mida de Leaflet per si el layout ha canviat.
+      if (window.innerWidth <= 720 && map) {
+        setTimeout(() => map.invalidateSize(), 200);
       }
     }
 
