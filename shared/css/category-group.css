@@ -107,7 +107,42 @@ details.category-group[open] > summary .category-group-row::after {
   text-transform: none;
 }
 
+/* ── Boto "Plegar" al peu d'un grup ──────────────────
+   Apareix dins d'un <details class="category-group"> i permet
+   tancar-lo sense haver de fer scroll fins al summary.
+   Creat des de JS via SharedCategoryGroup.addPlegarButton(grup). */
+.category-group-plegar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  margin-top: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.category-group-plegar:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink);
+}
+.category-group-plegar svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* ── Dark mode ─────────────────────────────────────── */
 html.dark details.category-group {
   border-top-color: var(--border);  /* --border ja és dark via tokens.css */
+}
+html.dark .category-group-plegar:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
 }

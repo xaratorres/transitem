@@ -52,6 +52,7 @@
   <script src="./shared/js/legal-kit.js" defer></script>
   <script src="./shared/js/cache-control.js" defer></script>
   <script src="./shared/js/search.js"></script>
+  <script src="./shared/js/category-group.js"></script>
 
   <style>
     /* * reset, html/body/a/button base → shared/css/base.css */
@@ -373,24 +374,6 @@
       padding: 1px 7px; border-radius: 100px;
       vertical-align: 1px;
     }
-
-    .llista-grup-plegar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      padding: 10px 14px;
-      margin-top: 8px;
-      background: transparent;
-      color: var(--ink-3);
-      font-size: 0.82rem;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: background 0.15s, color 0.15s;
-    }
-    .llista-grup-plegar:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
-    .llista-grup-plegar svg { width: 14px; height: 14px; }
 
     .llista-footer {
       margin-top: 1.5rem;
@@ -1158,7 +1141,6 @@
     html.dark .llista-search input:focus { border-color: var(--pink-ink); box-shadow: 0 0 0 3px rgba(245,169,184,0.28); }
     html.dark mark.hl { background: rgba(245,169,184,0.38); color: #fff; }
     html.dark .llista-footer { border-top-color: rgba(255,255,255,0.08); background: var(--bg); }
-    html.dark .llista-grup-plegar:hover { background: rgba(255,255,255,0.05); color: #fff; }
     /* html.dark .overlay → shared/css/modals.css */
     html.dark .modal { background: #1c1c1e; }
     /* .modal-close dark mode → shared/css/modals.css */
@@ -1574,15 +1556,7 @@
           it.addEventListener('click', () => openFitxa(r.id));
           grup.appendChild(it);
         });
-        const plegar = document.createElement('button');
-        plegar.className = 'llista-grup-plegar';
-        plegar.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg> Plegar`;
-        plegar.addEventListener('click', e => {
-          e.preventDefault(); e.stopPropagation();
-          grup.open = false;
-          grup.querySelector('summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-        grup.appendChild(plegar);
+        if (window.SharedCategoryGroup) window.SharedCategoryGroup.addPlegarButton(grup);
         rightCol.appendChild(grup);
       });
       if (totalVisible === 0) {
