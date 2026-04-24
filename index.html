@@ -2560,8 +2560,14 @@
       if (esTopo) {
         try {
           const IBERIAN_PPCC_PROV = new Set(['08','17','25','43','46','03','12']); // CAT + PV
+          // Exclou Llívia (INE 17099): és un enclavament català voltat per CN.
+          // Si la incloem al merge ibèric, queda com a polígon separat a la unió
+          // i es pinta amb perímetre dins de CN (línia interna indesitjada).
+          // La inflació de CN l'absorbeix al seu interior.
+          const LLIVIA_ID = '17099';
           const ibericGeoms = esTopo.objects.municipalities.geometries.filter(g => {
             const id = String(g.id);
+            if (id === LLIVIA_ID) return false;
             const prov2 = id.slice(0, 2);
             return IBERIAN_PPCC_PROV.has(prov2)
               || FRANJA_MUNI_CODES.has(id)
@@ -2575,9 +2581,18 @@
             try {
               const cnGeom = (cnPo.features && cnPo.features[0] && cnPo.features[0].geometry) || cnPo.geometry;
               if (ibericMerged && cnGeom && typeof polygonClipping !== 'undefined') {
-                const cnInflated = inflateMP(toMP(cnGeom), 0.015);
+                const cnInflated = inflateMP(toMP(cnGeom), 0.04);
                 const unified = polygonClipping.union(toMP(ibericMerged), cnInflated);
-                drawPerim({ type: 'MultiPolygon', coordinates: unified });
+                // Filtra polígons residuals (< 0.001 deg² ≈ 10km²): slivers a la
+                // frontera CAT-CN, illots disconnexos, Llívia… Ens quedem només
+                // amb el contorn principal (+ illots >10km² si n'hi ha).
+                const ringArea = ring => {
+                  let a = 0;
+                  for (let i = 0; i < ring.length - 1; i++) a += ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1];
+                  return Math.abs(a) / 2;
+                };
+                const bigPolys = unified.filter(poly => ringArea(poly[0]) > 0.001);
+                drawPerim({ type: 'MultiPolygon', coordinates: bigPolys.length ? bigPolys : unified });
               } else {
                 if (ibericMerged) drawPerim(ibericMerged);
                 if (cnGeom) drawPerim(cnGeom);
