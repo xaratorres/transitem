@@ -12,7 +12,9 @@
   <title>Transitem.cat — Xarxa de suport a persones trans</title>
   <meta name="description" content="Directori obert de recursos per a persones trans i no binàries: administració, associacions, col·lectius i grups de suport. Per a Catalunya, País Valencià, Illes Balears i altres territoris de parla catalana.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="imatges/icon-180.png?v=1">
+  <link rel="icon" type="image/png" sizes="192x192" href="imatges/icon-192.png?v=1">
+  <link rel="icon" type="image/png" sizes="512x512" href="imatges/icon-512.png?v=1">
 
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -638,7 +640,7 @@
     @media (max-width: 720px) {
       body.vista-mapa #mapa-view { flex-direction: column; }
       #mapa-sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
-      #mapa-container { flex: 1; min-height: 50vh; }
+      #mapa-container { flex: 1; min-height: 65vh; }
     }
 
     .mapa-search {
@@ -698,6 +700,29 @@
       border-color: rgba(255,255,255,0.08);
     }
     html.dark .mapa-legend-row { color: rgba(255,255,255,0.75); }
+
+    /* ── Mòbil: overrides — col·locats després dels defaults per guanyar la
+       cascada sense haver d'inflar specificity. */
+    @media (max-width: 720px) {
+      /* Força 16px als inputs de cerca a mòbil per evitar l'auto-zoom d'iOS
+         Safari quan l'usuari fa focus (qualsevol font-size < 16px el dispara). */
+      .mapa-search-inp input,
+      #llista-search-input,
+      #mapa-search-input { font-size: 16px; }
+      /* Llegenda al cantó inferior-esquerre, en línia horitzontal, compacta */
+      .mapa-legend {
+        top: auto; right: auto;
+        bottom: 8px; left: 8px;
+        flex-direction: row; flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+        padding: 5px 8px;
+        font-size: 0.66rem;
+      }
+      .mapa-legend-title { display: none; }
+      .mapa-legend-row { gap: 4px; }
+      .mapa-legend-dot { width: 8px; height: 8px; }
+    }
 
     /* Etiquetes dels territoris al mapa (només visibles al zoom baix) */
     .mapa-terri-label {
@@ -2051,10 +2076,12 @@
     // Amb padding mínim perquè ompli l'espai disponible al màxim.
     function fitStaticView() {
       if (!map) return;
-      const bounds = L.latLngBounds([
-        [37.7, -1.6], // SW: Alacant sud + Carxe (Múrcia)
-        [42.9, 9.0],  // NE/E: Catalunya Nord + l'Alguer
-      ]);
+      // A mòbil l'Alguer queda "fora de mapa" perquè si l'incloguéssim,
+      // tota la resta es veu minúscula. L'usuari pot fer zoom-out per veure'l.
+      const isMobile = window.innerWidth <= 720;
+      const bounds = isMobile
+        ? L.latLngBounds([[37.7, -1.8], [42.95, 4.5]])
+        : L.latLngBounds([[37.7, -1.6], [42.9, 9.0]]);
       try {
         map.fitBounds(bounds, { padding: [4, 4], maxZoom: 9 });
       } catch (e) {
@@ -2698,6 +2725,17 @@
       setMapInteractive(true);
       updateUserLayers();
       updateResultList();
+      // A mòbil, el sidebar+resultats ocupa molt espai sobre el mapa.
+      // Després de triar ubicació fem scroll perquè el mapa entri al viewport
+      // amb el cercle i el centre visibles.
+      if (window.innerWidth <= 720) {
+        setTimeout(() => {
+          const el = byId('mapa-container');
+          if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Invalida la mida perquè Leaflet recalculi després del layout/scroll
+          if (map) setTimeout(() => map.invalidateSize(), 350);
+        }, 100);
+      }
     }
 
     function clearUserLocation() {
@@ -2732,8 +2770,10 @@
         weight: 2,
         dashArray: '6 4',
       }).addTo(map);
-      // Zoom als bounds del cercle + petit marge
-      map.fitBounds(userCircle.getBounds(), { padding: [20, 20] });
+      // Zoom als bounds del cercle + marge (més gran a mòbil perquè la part
+      // inferior del mapa no queda tapada per l'UI)
+      const pad = window.innerWidth <= 720 ? [30, 30] : [20, 20];
+      map.fitBounds(userCircle.getBounds(), { padding: pad });
     }
 
     function haversineKm(a, b) {

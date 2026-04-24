@@ -4,7 +4,7 @@
 importScripts('./shared/js/sw-template.js');
 
 buildSW({
-  cacheName: 'transitem-v9',
+  cacheName: 'transitem-v10',
 
   // Fitxers que canvien sovint → network-first amb timeout 2.5s
   core: [
@@ -17,6 +17,10 @@ buildSW({
   // Fitxers estables → cache-first
   assets: [
     './favicon.svg',
+    './imatges/icon-180.png',
+    './imatges/icon-192.png',
+    './imatges/icon-512.png',
+    './imatges/icon-maskable-512.png',
     './data/cat-municipis.json',
     './data/es-municipalities.json',
     './data/cn-po.geojson',
