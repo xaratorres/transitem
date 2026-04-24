@@ -613,38 +613,49 @@
     }
     .mapa-radius-row input[type=range] {
       width: 100%;
-      accent-color: var(--pink-ink);
-      /* Captura el gest horitzontal: sense això, iOS Safari a vegades
-         interpreta l'arrossegament com un scroll vertical del sidebar (té
-         overflow:auto) i la barra no es mou. */
-      touch-action: pan-x;
-      height: 32px; /* àrea de tap més generosa a mòbil */
-    }
-    /* Thumb més gran per poder agafar-lo amb el dit (els natius són ~12px) */
-    .mapa-radius-row input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      background: var(--pink-ink);
-      border: 2px solid #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-      cursor: grab;
-      /* Centra el thumb (24px) sobre el track (4px): (track-thumb)/2 = -10px. */
-      margin-top: -10px;
+      appearance: none;
+      background: transparent;
+      /* Captura el gest horitzontal: sense això, iOS Safari interpreta
+         l'arrossegament com scroll vertical del sidebar. */
+      touch-action: pan-x;
+      height: 28px;
+      --fill: 33%;
     }
-    .mapa-radius-row input[type=range]::-moz-range-thumb {
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      background: var(--pink-ink);
-      border: 2px solid #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-      cursor: grab;
-    }
+    /* Track amb fill fins al thumb (part configurada pintada) via gradient
+       amb un stop variable controlat per --fill (actualitzat en JS). */
     .mapa-radius-row input[type=range]::-webkit-slider-runnable-track {
-      height: 4px; border-radius: 3px; background: var(--border);
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right,
+        var(--pink-ink) 0%, var(--pink-ink) var(--fill),
+        var(--border) var(--fill), var(--border) 100%);
     }
     .mapa-radius-row input[type=range]::-moz-range-track {
-      height: 4px; border-radius: 3px; background: var(--border);
+      height: 6px; border-radius: 3px; background: var(--border);
+    }
+    /* Firefox té ::-moz-range-progress per a la part omplerta. */
+    .mapa-radius-row input[type=range]::-moz-range-progress {
+      height: 6px; border-radius: 3px; background: var(--pink-ink);
+    }
+    /* Thumb: gran per tap, centrat sobre track de 6px. */
+    .mapa-radius-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--pink-ink);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: grab;
+      margin-top: -8px; /* (track-thumb)/2 = (6-22)/2 */
+    }
+    .mapa-radius-row input[type=range]::-moz-range-thumb {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--pink-ink);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: grab;
     }
 
     .mapa-result-count {
@@ -2968,11 +2979,22 @@
     byId('mapa-btn-clear-loc')?.addEventListener('click', clearUserLocation);
 
     // ─── Radi slider ─────
-    byId('mapa-radius-slider')?.addEventListener('input', e => {
-      radiusIdx = parseInt(e.target.value, 10);
-      byId('mapa-radius-val').textContent = getRadiusKm();
-      if (userLoc) { updateUserLayers(); updateResultList(); }
-    });
+    function updateSliderFill(s) {
+      if (!s) return;
+      const min = +s.min || 0, max = +s.max || 100, v = +s.value;
+      const pct = max > min ? ((v - min) / (max - min)) * 100 : 0;
+      s.style.setProperty('--fill', pct + '%');
+    }
+    const radiusSlider = byId('mapa-radius-slider');
+    if (radiusSlider) {
+      updateSliderFill(radiusSlider); // pinta la part seleccionada d'entrada
+      radiusSlider.addEventListener('input', e => {
+        radiusIdx = parseInt(e.target.value, 10);
+        byId('mapa-radius-val').textContent = getRadiusKm();
+        updateSliderFill(e.target);
+        if (userLoc) { updateUserLayers(); updateResultList(); }
+      });
+    }
 
     // ─── Cercador de municipis + codi postal ─────
     function buildSearchIndex() {
