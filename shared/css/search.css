@@ -1,0 +1,58 @@
+/* search.css — clear button personalitzat per inputs de cerca.
+ *
+ * Usat per shared/js/search.js: `SharedSearch.attachClear(input)` afegeix
+ * dinàmicament un `<button class="search-clear-x">` dins el parent de
+ * l'input. Aquest CSS estilitza el botó + amaga la X nativa de WebKit
+ * (que no es mostra a mòbil).
+ *
+ * Markup generat (automàtic):
+ *   <parent style="position: relative">
+ *     <input type="search" style="padding-right: 36px">
+ *     <button class="search-clear-x [visible]">…svg…</button>
+ *   </parent>
+ *
+ * Variables esperades (de tokens.css):
+ *   --ink-2, --ink-3
+ */
+
+.search-clear-x {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink-3);
+  color: #fff;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0;
+  z-index: 3;
+}
+
+.search-clear-x.visible {
+  display: flex;
+}
+
+.search-clear-x:hover {
+  background: var(--ink-2);
+}
+
+.search-clear-x svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+/* Oculta la X nativa de WebKit i Firefox — fem la nostra de pròpia,
+ * consistent entre desktop i mòbil. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}

@@ -13,7 +13,7 @@ window.APP_CONFIG = {
     year: 2026,
     dataFile: 'recursos.js',
     storagePrefix: 'transitem',
-    sharedVersion: '0.19.0',
+    sharedVersion: '0.20.0',
     startUrl: './',
     themeColor: '#ffffff'
   },

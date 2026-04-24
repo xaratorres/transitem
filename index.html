@@ -36,6 +36,7 @@
   <link rel="stylesheet" href="./shared/css/modals.css">
   <link rel="stylesheet" href="./shared/css/collapsible.css">
   <link rel="stylesheet" href="./shared/css/category-group.css">
+  <link rel="stylesheet" href="./shared/css/search.css">
   <script src="./shared/js/overlay.js" defer></script>
   <script src="./shared/js/theme.js" defer></script>
   <script src="./shared/js/splash.js" defer></script>
@@ -45,6 +46,7 @@
   <script src="./shared/js/about-modal.js" defer></script>
   <script src="./shared/js/legal-kit.js" defer></script>
   <script src="./shared/js/cache-control.js" defer></script>
+  <script src="./shared/js/search.js"></script>
 
   <style>
     /* * reset, html/body/a/button base → shared/css/base.css */
@@ -480,33 +482,7 @@
       position: relative;
     }
 
-    /* Creu per netejar la cerca (útil a mòbil, on el natiu no apareix) */
-    .search-clear-x {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 22px;
-      height: 22px;
-      border: 0;
-      border-radius: 50%;
-      background: var(--ink-3);
-      color: #fff;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      font-size: 0;
-      z-index: 3;
-    }
-    .search-clear-x.visible { display: flex; }
-    .search-clear-x:hover { background: var(--ink-2); }
-    .search-clear-x svg { width: 12px; height: 12px; display: block; }
-    /* Oculta la X nativa de WebKit i Firefox (en fem una de pròpia, consistent
-       entre desktop i mòbil). */
-    input[type="search"]::-webkit-search-cancel-button,
-    input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+    /* .search-clear-x + amagar X nativa WebKit → shared/css/search.css */
     input[type="search"] { appearance: textfield; }
     .mapa-search-inp input {
       width: 100%;
@@ -1379,36 +1355,9 @@
       return (words.map(w => w.charAt(0).toUpperCase()).join('').slice(0, 4) || (nom || '?').charAt(0).toUpperCase());
     }
 
-    // Normalitza per cerca insensible a accents i majúscules.
-    function normSearch(s) {
-      return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    }
-
-    // Adjunta una creu per netejar un input de cerca. Necessari a mòbil,
-    // on la X nativa d'`input[type=search]` no apareix.
-    function attachSearchClear(input) {
-      if (!input || input.__clearAttached) return;
-      input.__clearAttached = true;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'search-clear-x';
-      btn.setAttribute('aria-label', 'Neteja la cerca');
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
-      const parent = input.parentElement;
-      if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
-      parent.appendChild(btn);
-      // Reserva espai a la dreta perquè el text no trepitgi la X
-      input.style.paddingRight = '36px';
-      const sync = () => btn.classList.toggle('visible', !!input.value);
-      input.addEventListener('input', sync);
-      sync();
-      btn.addEventListener('click', () => {
-        input.value = '';
-        sync();
-        input.focus();
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-    }
+    // normSearch + attachSearchClear → shared/js/search.js (SharedSearch)
+    const normSearch = s => window.SharedSearch.norm(s);
+    const attachSearchClear = input => window.SharedSearch.attachClear(input);
 
     function entMatchesQuery(r, q) {
       if (!q || q.length < 2) return true;
