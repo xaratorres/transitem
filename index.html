@@ -2773,12 +2773,22 @@
       byId('mapa-loc-active').style.display = 'block';
       byId('mapa-current-label').textContent = '📍 ' + userLoc.label;
       setMapInteractive(true);
-      // A mòbil, el layout acaba de canviar (picker → active). Invalidem la
-      // mida ABANS de updateUserLayers perquè fitBounds usi la viewport
-      // correcta; si ho féssim després, el cercle quedaria mal centrat.
       if (window.innerWidth <= 720 && map) map.invalidateSize();
       updateUserLayers();
       updateResultList();
+      // A mòbil, a la primera transició picker→active el layout encara no
+      // ha quallat (iOS Safari pot amagar la barra d'adreces i eixamplar
+      // el dvh just després del tap). El fitBounds inicial dins de
+      // updateUserLayers usa la mida pre-transició i deixa el cercle
+      // lleugerament sortit. Refem la invalidació + fit després del
+      // settle perquè quedi exactament centrat.
+      if (window.innerWidth <= 720 && map) {
+        setTimeout(() => {
+          if (!map || !userCircle) return;
+          map.invalidateSize();
+          map.fitBounds(userCircle.getBounds(), { padding: [12, 12] });
+        }, 450);
+      }
     }
 
     function clearUserLocation() {
