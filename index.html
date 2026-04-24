@@ -763,7 +763,7 @@
       /* Llegenda al cantó inferior-esquerre, en línia horitzontal, compacta */
       .mapa-legend {
         top: auto; right: auto;
-        bottom: 8px; left: 8px;
+        bottom: 18px; left: 8px;
         flex-direction: row; flex-wrap: wrap;
         align-items: center;
         gap: 4px 10px;
@@ -2785,6 +2785,15 @@
       userLoc = null;
       if (userMarker) { userMarker.remove(); userMarker = null; }
       if (userCircle) { userCircle.remove(); userCircle = null; }
+      // Neteja el camp de cerca (i sincronitza la creu) perquè en tornar al
+      // picker no mostri una X d'input com si hi hagués text.
+      const inp = byId('mapa-search-input');
+      if (inp) {
+        inp.value = '';
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const sugs = byId('mapa-search-sugs');
+      if (sugs) sugs.style.display = 'none';
       byId('mapa-loc-picker').style.display = 'block';
       byId('mapa-loc-active').style.display = 'none';
       setMapInteractive(false);
@@ -2885,14 +2894,21 @@
     byId('mapa-btn-geo')?.addEventListener('click', () => {
       if (!navigator.geolocation) { alert('El navegador no suporta geolocalització.'); return; }
       const btn = byId('mapa-btn-geo');
-      btn.textContent = '⏳ Buscant…';
+      // Preservem el contingut original (el SVG del pin). Abans el sobre-
+      // escrivíem amb "⏳ Buscant… La meva ubicació", que desbordava el botó
+      // compacte de 30px i deixava text visible fora.
+      const originalHTML = btn.innerHTML;
+      btn.classList.add('loading');
+      btn.disabled = true;
+      btn.innerHTML = '<span style="font-size:11px;line-height:1">⏳</span>';
+      const restore = () => { btn.innerHTML = originalHTML; btn.disabled = false; btn.classList.remove('loading'); };
       navigator.geolocation.getCurrentPosition(
         pos => {
+          restore();
           setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'La meva ubicació' });
-          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg> La meva ubicació';
         },
         err => {
-          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg> La meva ubicació';
+          restore();
           alert('No s\'ha pogut obtenir la ubicació: ' + err.message);
         },
         { timeout: 10000, maximumAge: 300000 }
