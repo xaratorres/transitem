@@ -1970,15 +1970,17 @@
     }
 
     // Etiquetes flotants amb el nom dels territoris (apareixen en zoom baix)
+    // Etiquetes col·locades FORA del territori (al mar o al país veí) per no
+    // trepitjar cap punt de recurs. Estratègicament alineades amb el centre visual.
     const TERRI_LABEL_POS = {
-      cat:    { centre: [41.85, 1.65],  label: 'Catalunya' },
-      val:    { centre: [39.30, -0.55], label: 'País Valencià' },
-      bal:    { centre: [39.65, 2.95],  label: 'Illes Balears' },
-      franja: { centre: [41.45, 0.30],  label: 'Franja' },
-      cn:     { centre: [42.65, 2.55],  label: 'Catalunya Nord' },
-      and:    { centre: [42.55, 1.55],  label: 'Andorra' },
-      alguer: { centre: [40.56, 8.32],  label: "L'Alguer" },
-      carxe:  { centre: [38.50, -1.20], label: 'Carxe' },
+      cat:    { centre: [41.30, 3.40],  label: 'Catalunya' },        // Mediterrani, est de Barcelona
+      val:    { centre: [39.45, 0.55],  label: 'País Valencià' },    // Mar, davant de València ciutat
+      bal:    { centre: [40.30, 3.00],  label: 'Illes Balears' },    // Mar, nord de Mallorca
+      franja: { centre: [41.70, -0.40], label: 'Franja' },           // Aragó interior, oest de Franja
+      cn:     { centre: [43.00, 2.30],  label: 'Catalunya Nord' },   // Occitània, nord de CN
+      and:    { centre: [42.75, 1.55],  label: 'Andorra' },          // Occitània, nord d'Andorra
+      alguer: { centre: [40.56, 7.90],  label: "L'Alguer" },         // Mar, oest de l'Alguer
+      carxe:  { centre: [38.20, -1.25], label: 'Carxe' },            // Múrcia interior, sud del Carxe
     };
     function addTerritoryLabels() {
       if (!map) return;
@@ -2090,17 +2092,16 @@
         const topo = esTopo;
         // Províncies de parla catalana no-CAT
         const provGeoAll = topojson.feature(topo, topo.objects.provinces);
-        // Context gris (Aragó no-Franja, Múrcia no-Carxe, resta d'Espanya):
-        // totes les províncies que NO apareixen a PROV_TERRITORI, i a més les
-        // d'Aragó+Múrcia (es dibuixen sota el choropleth de Franja/Carxe).
-        esContextFeatures = {
-          type: 'FeatureCollection',
-          features: provGeoAll.features.filter(f => !PROV_TERRITORI[f.properties.name]
-            || f.properties.name === 'Huesca'
-            || f.properties.name === 'Teruel'
-            || f.properties.name === 'Zaragoza'
-            || f.properties.name === 'Murcia'),
-        };
+        // Context gris: NOMÉS Aragó (Osca/Terol/Saragossa) i Múrcia, res més
+        // de la resta d'Espanya. Mostrem els municipis per tenir subdivisions
+        // visibles (com Sardenya).
+        const ARAGO_MURCIA_PROV = new Set(['22', '44', '50', '30']); // INE codes
+        const aragoMurciaMunis = topojson.feature(topo, topo.objects.municipalities);
+        aragoMurciaMunis.features = aragoMurciaMunis.features.filter(f => {
+          const id = String(f.id);
+          return ARAGO_MURCIA_PROV.has(id.slice(0, 2));
+        });
+        esContextFeatures = aragoMurciaMunis;
         const provGeo = { type: 'FeatureCollection', features: provGeoAll.features.filter(f => PROV_TERRITORI[f.properties.name]) };
         provinciesFeatures = provGeo;
         // Municipis amb choropleth detallat (Balears + PV + Franja + Carxe)
@@ -2377,12 +2378,10 @@
         provLayer = L.geoJSON(provFeatsMunicipalless, {
           style: feat => {
             const terri = PROV_TERRITORI[feat.properties.name];
-            const list = byTerri[terri] || [];
-            const hasAny = list.length > 0;
             return {
-              color: hasAny ? '#0a0a0a' : '#A3A3A3',
-              weight: hasAny ? 1.2 : 0.7,
-              dashArray: hasAny ? null : '4 4',
+              color: '#ffffff',
+              weight: 0,
+              opacity: 0,
               fillColor: TERRITORI_COLOR_PASTEL[terri] || '#F3F4F6',
               fillOpacity: 0.55,
             };
@@ -2391,8 +2390,8 @@
             const terri = PROV_TERRITORI[feat.properties.name];
             const territoriMeta = TERRITORI_META[terri] || {};
             const list = byTerri[terri] || [];
-            layer.on('mouseover', () => layer.setStyle({ weight: 2.2 }));
-            layer.on('mouseout', () => layer.setStyle({ weight: list.length ? 1.2 : 0.7 }));
+            layer.on('mouseover', () => layer.setStyle({ weight: 0 }));
+            layer.on('mouseout', () => layer.setStyle({ weight: 0 }));
             let html = `<div class="popup-nom">${escHtml(feat.properties.name)} <span style="background:${TERRITORI_COLOR_PASTEL[terri] || '#ccc'};color:var(--ink);padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px;border:1px solid rgba(0,0,0,0.2)">${list.length}</span></div>`;
             html += `<div class="popup-muni">${escHtml(territoriMeta.nom || terri)}</div>`;
             if (list.length === 0) {
@@ -2529,29 +2528,71 @@
         simpleLayers[terri] = layer;
       });
 
-      // Perímetre negre només a les illes (Balears + l'Alguer). El continent
-      // PPCC es distingeix pel color rosa del choropleth; no hi ha línies
-      // internes entre territoris ni contorn als no-PPCC (es veuen com Sardenya).
+      // Perímetre extern negre resseguint tots els PPCC (unit, sense línies
+      // internes entre territoris):
+      //   - Continent ibèric: CAT + PV + Franja + Carxe fusionats des d'esTopo
+      //     (mateixa topologia → merge net sense juntures internes)
+      //   - Catalunya Nord: cn-po.geojson (outline del departament)
+      //   - Andorra: andorra.geojson (outline del país)
+      //   - Balears: fusionades des d'esTopo (illes)
+      //   - L'Alguer: simpleTerritories.alguer
       if (esTopo) {
         try {
-          // Balears com un únic perímetre (fusiona els seus municipis)
+          const IBERIAN_PPCC_PROV = new Set(['08','17','25','43','46','03','12']); // CAT + PV
+          const ibericGeoms = esTopo.objects.municipalities.geometries.filter(g => {
+            const id = String(g.id);
+            const prov2 = id.slice(0, 2);
+            return IBERIAN_PPCC_PROV.has(prov2)
+              || FRANJA_MUNI_CODES.has(id)
+              || CARXE_MUNI_CODES.has(id);
+          });
+          if (ibericGeoms.length) {
+            const ibericMerged = topojson.merge(esTopo, ibericGeoms);
+            const overlay = L.geoJSON({ type: 'Feature', geometry: ibericMerged, properties: {} }, {
+              interactive: false,
+              style: () => ({ color: '#0a0a0a', weight: 2.2, opacity: 0.9, fill: false }),
+            }).addTo(map);
+            perimeterExtraLayers.push(overlay);
+          }
+          // Balears (07) — illes amb perímetre propi
           const balGeoms = esTopo.objects.municipalities.geometries.filter(g => String(g.id).slice(0, 2) === '07');
           if (balGeoms.length) {
             const balMerged = topojson.merge(esTopo, balGeoms);
             const overlay = L.geoJSON({ type: 'Feature', geometry: balMerged, properties: {} }, {
               interactive: false,
-              style: () => ({ color: '#0a0a0a', weight: 2, opacity: 0.85, fill: false }),
+              style: () => ({ color: '#0a0a0a', weight: 2.2, opacity: 0.9, fill: false }),
             }).addTo(map);
             perimeterExtraLayers.push(overlay);
           }
         } catch (e) {
-          console.warn('No s\'ha pogut calcular el perímetre de les Balears:', e);
+          console.warn('No s\'ha pogut calcular el perímetre PPCC:', e);
         }
       }
+      // Catalunya Nord (outline del departament dels Pirineus Orientals)
+      try {
+        fetch('data/cn-po.geojson').then(r => r.json()).then(cnPo => {
+          const overlay = L.geoJSON(cnPo, {
+            interactive: false,
+            style: () => ({ color: '#0a0a0a', weight: 2.2, opacity: 0.9, fill: false }),
+          }).addTo(map);
+          perimeterExtraLayers.push(overlay);
+        }).catch(() => {});
+      } catch (_) {}
+      // Andorra (outline del país)
+      try {
+        fetch('data/andorra.geojson').then(r => r.json()).then(andGeo => {
+          const overlay = L.geoJSON(andGeo, {
+            interactive: false,
+            style: () => ({ color: '#0a0a0a', weight: 2.2, opacity: 0.9, fill: false }),
+          }).addTo(map);
+          perimeterExtraLayers.push(overlay);
+        }).catch(() => {});
+      } catch (_) {}
+      // L'Alguer (illa)
       if (simpleTerritories.alguer && simpleTerritories.alguer.features.length) {
         const overlay = L.geoJSON(simpleTerritories.alguer, {
           interactive: false,
-          style: () => ({ color: '#0a0a0a', weight: 2, opacity: 0.85, fill: false }),
+          style: () => ({ color: '#0a0a0a', weight: 2.2, opacity: 0.9, fill: false }),
         }).addTo(map);
         perimeterExtraLayers.push(overlay);
       }
