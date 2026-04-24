@@ -3099,7 +3099,10 @@
     // ─── Inicialitza ──────────────────────────
     renderAjudamOpts();
     renderLlista();
-    setVista(getVista());
+    // Cada càrrega nova comença a l'inici (llista), encara que la sessió
+    // anterior hagués deixat el mapa obert. El localStorage segueix reflectint
+    // l'estat actual quan l'usuari canvia de vista.
+    setVista('llista');
     updateAjudamCount();
   })();
   </script>
