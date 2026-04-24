@@ -1760,6 +1760,7 @@
     let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
     let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
     let contextFeatures = null;    // Sardenya + Còrsega (context geogràfic, no clic)
+    let esContextFeatures = null;  // Resta d'Espanya (Aragó, Múrcia, etc.) com a context gris
     let catTopo = null;            // raw TopoJSON de CAT municipis (per fer merge)
     let esTopo = null;             // raw TopoJSON d'Espanya municipis (per fer merge)
     let simpleTerritories = {};    // terri → FeatureCollection
@@ -1953,6 +1954,8 @@
         keyboard: false,
         touchZoom: false,
         tap: false,
+        zoomSnap: 0,
+        zoomDelta: 0.25,
       }).setView([40.9, 1.7], 6);
       L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('ICGC · INE · INSEE').addTo(map);
       map.getContainer().style.background = '#F8FAFC';
@@ -1995,7 +1998,7 @@
     }
     function toggleTerritoryLabels() {
       if (!map || !territoryLabels.length) return;
-      const show = map.getZoom() <= 7;
+      const show = map.getZoom() <= 8;
       territoryLabels.forEach(m => {
         const el = m.getElement();
         if (el) el.style.display = show ? '' : 'none';
@@ -2035,11 +2038,11 @@
     function fitStaticView() {
       if (!map) return;
       const bounds = L.latLngBounds([
-        [38.1, -1.6], // SW: Carxe (Múrcia)
+        [37.7, -1.6], // SW: Alacant sud + Carxe (Múrcia)
         [42.9, 9.0],  // NE/E: Catalunya Nord + l'Alguer
       ]);
       try {
-        map.fitBounds(bounds, { padding: [0, 0], maxZoom: 8 });
+        map.fitBounds(bounds, { padding: [4, 4], maxZoom: 9 });
       } catch (e) {
         map.setView([40.9, 1.7], 6);
       }
@@ -2086,8 +2089,19 @@
         esTopo = await res.json();
         const topo = esTopo;
         // Províncies de parla catalana no-CAT
-        const provGeo = topojson.feature(topo, topo.objects.provinces);
-        provGeo.features = provGeo.features.filter(f => PROV_TERRITORI[f.properties.name]);
+        const provGeoAll = topojson.feature(topo, topo.objects.provinces);
+        // Context gris (Aragó no-Franja, Múrcia no-Carxe, resta d'Espanya):
+        // totes les províncies que NO apareixen a PROV_TERRITORI, i a més les
+        // d'Aragó+Múrcia (es dibuixen sota el choropleth de Franja/Carxe).
+        esContextFeatures = {
+          type: 'FeatureCollection',
+          features: provGeoAll.features.filter(f => !PROV_TERRITORI[f.properties.name]
+            || f.properties.name === 'Huesca'
+            || f.properties.name === 'Teruel'
+            || f.properties.name === 'Zaragoza'
+            || f.properties.name === 'Murcia'),
+        };
+        const provGeo = { type: 'FeatureCollection', features: provGeoAll.features.filter(f => PROV_TERRITORI[f.properties.name]) };
         provinciesFeatures = provGeo;
         // Municipis amb choropleth detallat (Balears + PV + Franja + Carxe)
         const muni = topojson.feature(topo, topo.objects.municipalities);
@@ -2133,9 +2147,13 @@
       municipalLayers = {};
       extraMarkers.forEach(m => m.remove()); extraMarkers = [];
 
-      // Capa de context (Sardenya + Còrsega): subtil i no interactiva
-      if (contextFeatures && contextFeatures.features.length) {
-        contextLayer = L.geoJSON(contextFeatures, {
+      // Capa de context (Sardenya + Còrsega + resta d'Espanya no-PPCC):
+      // subtil, no interactiva, sense perímetre negre.
+      const contextAll = { type: 'FeatureCollection', features: [] };
+      if (contextFeatures && contextFeatures.features.length) contextAll.features.push(...contextFeatures.features);
+      if (esContextFeatures && esContextFeatures.features.length) contextAll.features.push(...esContextFeatures.features);
+      if (contextAll.features.length) {
+        contextLayer = L.geoJSON(contextAll, {
           interactive: false,
           style: () => ({
             color: '#cbd5e1',
@@ -2511,58 +2529,31 @@
         simpleLayers[terri] = layer;
       });
 
-      // Perímetre Països Catalans (contorn gruixut negre, sense fill).
-      // Fusiona els municipis amb `topojson.merge` per obtenir el contorn extern unificat.
-      if (catTopo && esTopo) {
+      // Perímetre negre només a les illes (Balears + l'Alguer). El continent
+      // PPCC es distingeix pel color rosa del choropleth; no hi ha línies
+      // internes entre territoris ni contorn als no-PPCC (es veuen com Sardenya).
+      if (esTopo) {
         try {
-          const perimFeatures = [];
-          // 1. CAT: merge de tots els municipis → MultiPolygon unificat
-          const catObj = catTopo.objects[Object.keys(catTopo.objects)[0]];
-          const catMerged = topojson.merge(catTopo, catObj.geometries);
-          perimFeatures.push({ type: 'Feature', geometry: catMerged, properties: { region: 'CAT' } });
-          // 2. Espanya catalanoparlants (Bal + PV + Franja + Carxe)
-          const wantedEsGeoms = esTopo.objects.municipalities.geometries.filter(g => {
-            const id = String(g.id);
-            return MUNI_PROV_CODES.has(id.slice(0, 2))
-              || FRANJA_MUNI_CODES.has(id)
-              || CARXE_MUNI_CODES.has(id);
-          });
-          const esMerged = topojson.merge(esTopo, wantedEsGeoms);
-          perimFeatures.push({ type: 'Feature', geometry: esMerged, properties: { region: 'ES_CAT' } });
-          // 3. Catalunya Nord: les 226 communes com un sol polígon via bounds (aproximació acceptable)
-          //    Dibuixem les communes amb stroke gruixut (contorns interns visibles però clars)
-          const perimGeoJSON = { type: 'FeatureCollection', features: perimFeatures };
-          perimeterLayer = L.geoJSON(perimGeoJSON, {
-            interactive: false,
-            style: () => ({
-              color: '#0a0a0a',
-              weight: 2.5,
-              opacity: 0.9,
-              fill: false,
-            }),
-          }).addTo(map);
-          // Per CN i Andorra (GeoJSON natiu, no topology): capa addicional amb stroke gruixut
-          // dibuixant TOTES les communes/parròquies. Els contorns interns es veuran però el
-          // conjunt marca el territori.
-          Object.entries(municipalTerritories).forEach(([terri, feats]) => {
-            if (!feats || !feats.features.length) return;
-            const overlay = L.geoJSON(feats, {
-              interactive: false,
-              style: () => ({ color: '#0a0a0a', weight: 1.5, opacity: 0.7, fill: false }),
-            }).addTo(map);
-            perimeterExtraLayers.push(overlay);
-          });
-          // Alguer (1 polígon simple)
-          if (simpleTerritories.alguer && simpleTerritories.alguer.features.length) {
-            const overlay = L.geoJSON(simpleTerritories.alguer, {
+          // Balears com un únic perímetre (fusiona els seus municipis)
+          const balGeoms = esTopo.objects.municipalities.geometries.filter(g => String(g.id).slice(0, 2) === '07');
+          if (balGeoms.length) {
+            const balMerged = topojson.merge(esTopo, balGeoms);
+            const overlay = L.geoJSON({ type: 'Feature', geometry: balMerged, properties: {} }, {
               interactive: false,
               style: () => ({ color: '#0a0a0a', weight: 2, opacity: 0.85, fill: false }),
             }).addTo(map);
             perimeterExtraLayers.push(overlay);
           }
         } catch (e) {
-          console.warn('No s\'ha pogut calcular el perímetre dels Països Catalans:', e);
+          console.warn('No s\'ha pogut calcular el perímetre de les Balears:', e);
         }
+      }
+      if (simpleTerritories.alguer && simpleTerritories.alguer.features.length) {
+        const overlay = L.geoJSON(simpleTerritories.alguer, {
+          interactive: false,
+          style: () => ({ color: '#0a0a0a', weight: 2, opacity: 0.85, fill: false }),
+        }).addTo(map);
+        perimeterExtraLayers.push(overlay);
       }
 
       // Markers per a TOTS els recursos amb coord. Agrupa per coord idèntica (els recursos
