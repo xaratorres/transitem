@@ -479,6 +479,35 @@
     .mapa-search-inp {
       position: relative;
     }
+
+    /* Creu per netejar la cerca (útil a mòbil, on el natiu no apareix) */
+    .search-clear-x {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--ink-3);
+      color: #fff;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      font-size: 0;
+      z-index: 3;
+    }
+    .search-clear-x.visible { display: flex; }
+    .search-clear-x:hover { background: var(--ink-2); }
+    .search-clear-x svg { width: 12px; height: 12px; display: block; }
+    /* Oculta la X nativa de WebKit i Firefox (en fem una de pròpia, consistent
+       entre desktop i mòbil). */
+    input[type="search"]::-webkit-search-cancel-button,
+    input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+    input[type="search"] { appearance: textfield; }
     .mapa-search-inp input {
       width: 100%;
       padding: 0.6rem 0.85rem;
@@ -1350,11 +1379,42 @@
       return (words.map(w => w.charAt(0).toUpperCase()).join('').slice(0, 4) || (nom || '?').charAt(0).toUpperCase());
     }
 
+    // Normalitza per cerca insensible a accents i majúscules.
+    function normSearch(s) {
+      return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Adjunta una creu per netejar un input de cerca. Necessari a mòbil,
+    // on la X nativa d'`input[type=search]` no apareix.
+    function attachSearchClear(input) {
+      if (!input || input.__clearAttached) return;
+      input.__clearAttached = true;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'search-clear-x';
+      btn.setAttribute('aria-label', 'Neteja la cerca');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+      const parent = input.parentElement;
+      if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+      parent.appendChild(btn);
+      // Reserva espai a la dreta perquè el text no trepitgi la X
+      input.style.paddingRight = '36px';
+      const sync = () => btn.classList.toggle('visible', !!input.value);
+      input.addEventListener('input', sync);
+      sync();
+      btn.addEventListener('click', () => {
+        input.value = '';
+        sync();
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+
     function entMatchesQuery(r, q) {
       if (!q || q.length < 2) return true;
-      const lc = q.toLowerCase();
+      const lc = normSearch(q);
       return [r.nom, r.ambit, r.descripcio_breu, r.municipi, r.comarca, (r.ofereix||[]).join(' '), (r.quan_contactar||[]).join(' ')]
-        .some(f => (f || '').toLowerCase().replace(/\n/g,' ').includes(lc));
+        .some(f => normSearch(f).replace(/\n/g,' ').includes(lc));
     }
 
     function entMatchesFilters(r) {
@@ -1480,6 +1540,7 @@
       // Cercador
       const input = byId('llista-search-input');
       if (input) {
+        attachSearchClear(input);
         let t;
         input.addEventListener('input', e => {
           clearTimeout(t);
@@ -2592,7 +2653,11 @@
                   for (let i = 0; i < ring.length - 1; i++) a += ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1];
                   return Math.abs(a) / 2;
                 };
-                const bigPolys = unified.filter(poly => ringArea(poly[0]) > 0.001);
+                // Més agressiu: només conservem polígons significatius
+                // (>0.01 deg² ≈ 100km²). Això elimina slivers residuals i
+                // illes molt petites que queden "soltes" a la unió (fragments
+                // visibles com línies negres internes prop de la frontera).
+                const bigPolys = unified.filter(poly => ringArea(poly[0]) > 0.01);
                 drawPerim({ type: 'MultiPolygon', coordinates: bigPolys.length ? bigPolys : unified });
               } else {
                 if (ibericMerged) drawPerim(ibericMerged);
@@ -2852,10 +2917,12 @@
     }
 
     if (searchInput) {
+      attachSearchClear(searchInput);
       let searchTimer;
       searchInput.addEventListener('input', () => {
         clearTimeout(searchTimer);
-        const q = searchInput.value.trim().toLowerCase();
+        const raw = searchInput.value.trim();
+        const q = normSearch(raw);
         if (!q) { searchSugs.style.display = 'none'; return; }
         if (!searchIndex) searchIndex = buildSearchIndex();
         // Si sembla un codi postal (4-5 dígits), debounce + Nominatim
@@ -2864,8 +2931,8 @@
           showSugs([{ name: `Cercant codi postal ${q}…`, coord: [0,0], _type: 'cp_wait' }]);
           return;
         }
-        // Autocomplete per nom de municipi
-        const matches = searchIndex.filter(s => s.name.toLowerCase().includes(q));
+        // Autocomplete per nom de municipi (insensible a accents)
+        const matches = searchIndex.filter(s => normSearch(s.name).includes(q));
         showSugs(matches.map(s => ({ ...s, hint: 'Municipi' })));
       });
       searchInput.addEventListener('focus', () => {
