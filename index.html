@@ -427,10 +427,10 @@
       width: 100%;
       position: relative;
     }
-    body.vista-mapa #mapa-view { display: flex; }
+    body.vista-mapa #mapa-view { display: flex; position: relative; }
     body.vista-mapa { overflow: hidden; }
     body.vista-mapa .llista-view { display: none; }
-    #mapa-container { flex: 1; height: 100%; min-width: 0; }
+    #mapa-container { flex: 1; height: 100%; min-width: 0; position: relative; }
 
     /* Sidebar amb el location picker + radi */
     #mapa-sidebar {
@@ -579,13 +579,39 @@
       overflow-y: auto;
     }
     .mapa-result-item {
-      padding: 0.55rem 0.7rem;
+      padding: 0.45rem 0.55rem 0.45rem 0.7rem;
       border: 1px solid var(--border);
       border-left: 3px solid var(--tipcolor, var(--ink-4));
       border-radius: 8px;
       background: var(--bg);
-      cursor: pointer;
       transition: background 0.12s;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .mapa-result-body { flex: 1; cursor: pointer; min-width: 0; }
+    .mapa-result-locate {
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      color: var(--ink-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .mapa-result-locate:hover {
+      background: var(--pink-ink);
+      color: #fff;
+      border-color: var(--pink-ink);
+    }
+    html.dark .mapa-result-locate {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--ink-2);
+    }
+    html.dark .mapa-result-locate:hover {
+      background: var(--pink-ink);
+      color: #fff;
     }
     html.dark .mapa-result-item { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
     .mapa-result-item:hover { background: var(--bg-soft); }
@@ -627,10 +653,10 @@
     .popup-muni { color: var(--ink-3); font-size: 0.78rem; margin-bottom: 6px; }
     .popup-btn { color: var(--pink-ink); font-weight: 600; font-size: 0.82rem; cursor: pointer; }
 
-    /* Llegenda del mapa (inferior-esquerre) */
+    /* Llegenda del mapa (dins del mapa-container, al cantó superior-dret sobre el mar) */
     .mapa-legend {
       position: absolute;
-      bottom: 12px; left: 12px;
+      top: 12px; right: 12px;
       z-index: 500;
       background: rgba(255,255,255,0.96);
       backdrop-filter: blur(6px);
@@ -1046,7 +1072,7 @@
   <!-- ─── NAV ────────────────────────────────── -->
   <nav>
     <div class="brand">
-      <span class="brand-name">Transit<span class="em">em</span>.cat</span>
+      <span class="brand-name">Transit<span class="em">em</span></span>
       <span class="chip-revisio">En revisió</span>
     </div>
     <div class="nav-btns">
@@ -1107,13 +1133,14 @@
         <div class="mapa-result-list" id="mapa-result-list"></div>
       </div>
     </aside>
-    <div id="mapa-container"></div>
-    <div class="mapa-legend" aria-hidden="true">
-      <div class="mapa-legend-title">Tipus</div>
-      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#0284C7"></span>Administració</div>
-      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#EC4899"></span>Associació</div>
-      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#7C3AED"></span>Col·lectiu</div>
-      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#10B981"></span>Grup informal</div>
+    <div id="mapa-container">
+      <div class="mapa-legend" aria-hidden="true">
+        <div class="mapa-legend-title">Tipus</div>
+        <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#0284C7"></span>Administració</div>
+        <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#EC4899"></span>Associació</div>
+        <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#7C3AED"></span>Col·lectiu</div>
+        <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#10B981"></span>Grup informal</div>
+      </div>
     </div>
   </div>
 
@@ -1440,7 +1467,7 @@
 
       const FOOTER = `
         <footer class="llista-footer">
-          <strong>Eina en fase de revisió.</strong> Si detectes algun error o vols fer una aportació, <button type="button" data-legal-open="contact" style="background:none;border:0;padding:0;font:inherit;color:var(--pink-ink);cursor:pointer;text-decoration:underline">escriu-nos</button>.
+          <strong>Eina en fase de revisió.</strong> Si detectes algun error o vols fer una aportació, escriu a <a href="https://xiuxiuejar.com/espai/transitar" target="_blank" rel="noopener noreferrer">xiuxiuejar.com/espai/transitar</a>.
           <div class="legal-links">
             <button type="button" data-legal-open="legal">Avís legal</button><span>·</span><button type="button" data-legal-open="privacy">Política de privacitat</button><span>·</span><button type="button" data-legal-open="contact">Contacte</button>
           </div>
@@ -1723,6 +1750,8 @@
     let esMunisLayer = null;       // municipis Balears + PV + Franja + Carxe
     let provLayer = null;
     let contextLayer = null;       // Context geogràfic (Sardenya + Còrsega)
+    let perimeterLayer = null;     // Perímetre Països Catalans (contorn negre gruixut)
+    let perimeterExtraLayers = []; // Perímetre addicional (CN, And, Alguer — GeoJSON natiu)
     let territoryLabels = [];      // Etiquetes flotants amb el nom dels territoris
     let extraMarkers = [];
     let simpleLayers = {};         // alguer → L.GeoJSON
@@ -1731,6 +1760,8 @@
     let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
     let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
     let contextFeatures = null;    // Sardenya + Còrsega (context geogràfic, no clic)
+    let catTopo = null;            // raw TopoJSON de CAT municipis (per fer merge)
+    let esTopo = null;             // raw TopoJSON d'Espanya municipis (per fer merge)
     let simpleTerritories = {};    // terri → FeatureCollection
     let municipalTerritories = {}; // terri → FeatureCollection (CN communes, And parròquies)
 
@@ -1998,16 +2029,17 @@
       return municipalTerritories[terri];
     }
 
-    // Ajusta l'enquadrament per mostrar tots els territoris a la vista estàtica.
+    // Ajusta l'enquadrament per mostrar tots els territoris de parla catalana a la vista estàtica.
     // Inclou tot el Mediterrani occidental: Múrcia (SW) → Catalunya Nord (NE) → l'Alguer (E).
+    // Amb padding mínim perquè ompli l'espai disponible al màxim.
     function fitStaticView() {
       if (!map) return;
       const bounds = L.latLngBounds([
-        [38.0, -1.8], // SW: Múrcia
-        [43.0, 9.8],  // NE/E: Catalunya Nord + l'Alguer (Sardenya)
+        [38.1, -1.6], // SW: Carxe (Múrcia)
+        [42.9, 9.0],  // NE/E: Catalunya Nord + l'Alguer
       ]);
       try {
-        map.fitBounds(bounds, { padding: [10, 10] });
+        map.fitBounds(bounds, { padding: [0, 0], maxZoom: 8 });
       } catch (e) {
         map.setView([40.9, 1.7], 6);
       }
@@ -2020,9 +2052,9 @@
         return loadMunicipis();
       }
       const res = await fetch('data/cat-municipis.json');
-      const topo = await res.json();
-      const obj = topo.objects[Object.keys(topo.objects)[0]];
-      municipisFeatures = topojson.feature(topo, obj);
+      catTopo = await res.json();
+      const obj = catTopo.objects[Object.keys(catTopo.objects)[0]];
+      municipisFeatures = topojson.feature(catTopo, obj);
       return municipisFeatures;
     }
 
@@ -2051,7 +2083,8 @@
       }
       try {
         const res = await fetch('data/es-municipalities.json');
-        const topo = await res.json();
+        esTopo = await res.json();
+        const topo = esTopo;
         // Províncies de parla catalana no-CAT
         const provGeo = topojson.feature(topo, topo.objects.provinces);
         provGeo.features = provGeo.features.filter(f => PROV_TERRITORI[f.properties.name]);
@@ -2092,6 +2125,8 @@
       if (esMunisLayer) { esMunisLayer.remove(); esMunisLayer = null; }
       if (provLayer) { provLayer.remove(); provLayer = null; }
       if (contextLayer) { contextLayer.remove(); contextLayer = null; }
+      if (perimeterLayer) { perimeterLayer.remove(); perimeterLayer = null; }
+      perimeterExtraLayers.forEach(l => l.remove()); perimeterExtraLayers = [];
       Object.values(simpleLayers).forEach(l => l.remove());
       Object.values(municipalLayers).forEach(l => l.remove());
       simpleLayers = {};
@@ -2476,6 +2511,60 @@
         simpleLayers[terri] = layer;
       });
 
+      // Perímetre Països Catalans (contorn gruixut negre, sense fill).
+      // Fusiona els municipis amb `topojson.merge` per obtenir el contorn extern unificat.
+      if (catTopo && esTopo) {
+        try {
+          const perimFeatures = [];
+          // 1. CAT: merge de tots els municipis → MultiPolygon unificat
+          const catObj = catTopo.objects[Object.keys(catTopo.objects)[0]];
+          const catMerged = topojson.merge(catTopo, catObj.geometries);
+          perimFeatures.push({ type: 'Feature', geometry: catMerged, properties: { region: 'CAT' } });
+          // 2. Espanya catalanoparlants (Bal + PV + Franja + Carxe)
+          const wantedEsGeoms = esTopo.objects.municipalities.geometries.filter(g => {
+            const id = String(g.id);
+            return MUNI_PROV_CODES.has(id.slice(0, 2))
+              || FRANJA_MUNI_CODES.has(id)
+              || CARXE_MUNI_CODES.has(id);
+          });
+          const esMerged = topojson.merge(esTopo, wantedEsGeoms);
+          perimFeatures.push({ type: 'Feature', geometry: esMerged, properties: { region: 'ES_CAT' } });
+          // 3. Catalunya Nord: les 226 communes com un sol polígon via bounds (aproximació acceptable)
+          //    Dibuixem les communes amb stroke gruixut (contorns interns visibles però clars)
+          const perimGeoJSON = { type: 'FeatureCollection', features: perimFeatures };
+          perimeterLayer = L.geoJSON(perimGeoJSON, {
+            interactive: false,
+            style: () => ({
+              color: '#0a0a0a',
+              weight: 2.5,
+              opacity: 0.9,
+              fill: false,
+            }),
+          }).addTo(map);
+          // Per CN i Andorra (GeoJSON natiu, no topology): capa addicional amb stroke gruixut
+          // dibuixant TOTES les communes/parròquies. Els contorns interns es veuran però el
+          // conjunt marca el territori.
+          Object.entries(municipalTerritories).forEach(([terri, feats]) => {
+            if (!feats || !feats.features.length) return;
+            const overlay = L.geoJSON(feats, {
+              interactive: false,
+              style: () => ({ color: '#0a0a0a', weight: 1.5, opacity: 0.7, fill: false }),
+            }).addTo(map);
+            perimeterExtraLayers.push(overlay);
+          });
+          // Alguer (1 polígon simple)
+          if (simpleTerritories.alguer && simpleTerritories.alguer.features.length) {
+            const overlay = L.geoJSON(simpleTerritories.alguer, {
+              interactive: false,
+              style: () => ({ color: '#0a0a0a', weight: 2, opacity: 0.85, fill: false }),
+            }).addTo(map);
+            perimeterExtraLayers.push(overlay);
+          }
+        } catch (e) {
+          console.warn('No s\'ha pogut calcular el perímetre dels Països Catalans:', e);
+        }
+      }
+
       // Markers per a TOTS els recursos amb coord. Agrupa per coord idèntica (els recursos
       // al mateix municipi tenen la mateixa coord → evitem apilar-los en un sol marker "soroll")
       const byCoord = {};
@@ -2600,15 +2689,34 @@
       }
       listEl.innerHTML = items.slice(0, 50).map(r => {
         const color = TIPUS_META[r.tipus].color;
-        return `<div class="mapa-result-item" style="--tipcolor:${color}" data-id="${r.id}">
-          <div class="nom">${escHtml(r.nom)}</div>
-          <div class="meta"><span>${escHtml(r.municipi || '')}</span><span class="dist">${r._dist.toFixed(1)} km</span></div>
+        const coord = r.coord ? `data-lat="${r.coord[0]}" data-lon="${r.coord[1]}"` : '';
+        return `<div class="mapa-result-item" style="--tipcolor:${color}" data-id="${r.id}" ${coord}>
+          <div class="mapa-result-body">
+            <div class="nom">${escHtml(r.nom)}</div>
+            <div class="meta"><span>${escHtml(r.municipi || '')}</span><span class="dist">${r._dist.toFixed(1)} km</span></div>
+          </div>
+          <button class="mapa-result-locate" type="button" title="Veure al mapa" aria-label="Veure al mapa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg>
+          </button>
         </div>`;
       }).join('');
       listEl.querySelectorAll('.mapa-result-item').forEach(el => {
-        el.addEventListener('click', () => {
+        // Clic al cos → obrir fitxa
+        el.querySelector('.mapa-result-body').addEventListener('click', () => {
           byId('overlay-fitxa').classList.add('open');
           openFitxa(el.dataset.id);
+        });
+        // Clic al botó "lloc" → centrar mapa al marker i obrir popup
+        const locBtn = el.querySelector('.mapa-result-locate');
+        if (locBtn) locBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          if (isNaN(lat) || isNaN(lon)) return;
+          map.setView([lat, lon], Math.max(map.getZoom(), 12), { animate: true });
+          // Busca el marker en aquestes coords i obre el seu popup
+          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
+          if (marker) setTimeout(() => marker.openPopup(), 400);
         });
       });
     }
