@@ -46,7 +46,7 @@ const TIPUS_META = {
   administracio: {
     nom: 'Administració',
     color: '#0284C7',
-    descripcio: 'Serveis públics especialitzats (Trànsit, CatSalut, ajuntaments).'
+    descripcio: 'Serveis públics d\'atenció trans (Trànsit a Catalunya, SOC Trans al País Valencià, Servei d\'Atenció LGTBI a les Illes Balears, unitats hospitalàries, ajuntaments).'
   },
   associacio:    {
     nom: 'Associació',

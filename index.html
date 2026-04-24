@@ -1408,7 +1408,8 @@
 
       let totalVisible = 0;
       Object.entries(TIPUS_META).forEach(([key, meta]) => {
-        const llista = RECURSOS.filter(r => r.tipus === key && entMatchesFilters(r) && entMatchesQuery(r, q));
+        const llista = RECURSOS.filter(r => r.tipus === key && entMatchesFilters(r) && entMatchesQuery(r, q))
+          .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca', { sensitivity: 'base' }));
         if (!llista.length) return;
         totalVisible += llista.length;
         const grup = document.createElement('details');
