@@ -2539,6 +2539,17 @@
       //   - L'Alguer: simpleTerritories.alguer
       // Helpers per unir poligons via polygon-clipping
       const toMP = g => g && g.type === 'Polygon' ? [g.coordinates] : (g && g.type === 'MultiPolygon' ? g.coordinates : []);
+      // Infla un MultiPolygon radialment per cada anell (centroide → vèrtex).
+      // Ens cal perquè CAT (INE) i CN (IGN) no comparteixen coords exactes a
+      // la Pirineu, i sense inflació la unió deixa un micro-buit que es veu
+      // com a línia negra interna. 0.01° ≈ 1km, invisible al zoom actual.
+      const inflateMP = (mp, delta) => mp.map(poly => poly.map(ring => {
+        let cx=0, cy=0; ring.forEach(([x,y]) => { cx+=x; cy+=y; }); cx/=ring.length; cy/=ring.length;
+        return ring.map(([x,y]) => {
+          const dx=x-cx, dy=y-cy, len=Math.sqrt(dx*dx+dy*dy);
+          return len>1e-9 ? [x+(dx/len)*delta, y+(dy/len)*delta] : [x,y];
+        });
+      }));
       const drawPerim = geom => {
         const overlay = L.geoJSON({ type: 'Feature', geometry: geom, properties: {} }, {
           interactive: false,
@@ -2564,7 +2575,8 @@
             try {
               const cnGeom = (cnPo.features && cnPo.features[0] && cnPo.features[0].geometry) || cnPo.geometry;
               if (ibericMerged && cnGeom && typeof polygonClipping !== 'undefined') {
-                const unified = polygonClipping.union(toMP(ibericMerged), toMP(cnGeom));
+                const cnInflated = inflateMP(toMP(cnGeom), 0.015);
+                const unified = polygonClipping.union(toMP(ibericMerged), cnInflated);
                 drawPerim({ type: 'MultiPolygon', coordinates: unified });
               } else {
                 if (ibericMerged) drawPerim(ibericMerged);
