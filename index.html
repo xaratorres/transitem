@@ -459,6 +459,21 @@
       margin-bottom: 0.6rem;
     }
     .mapa-loc-section { display: flex; flex-direction: column; gap: 0.55rem; }
+
+    /* Header enganxat a dalt del sidebar quan hi ha ubicació activa: així
+       l'usuari sempre té accés a l'etiqueta, la X i la barra de radi mentre
+       fa scroll pels resultats. */
+    .mapa-active-header {
+      position: sticky;
+      top: -1rem;
+      background: var(--bg);
+      padding-top: 1rem;
+      padding-bottom: 0.8rem;
+      margin-top: -1rem;
+      z-index: 5;
+      display: flex; flex-direction: column; gap: 0.8rem;
+    }
+    html.dark .mapa-active-header { background: var(--bg); }
     .mapa-loc-btn {
       padding: 0.65rem 0.9rem;
       border-radius: 10px;
@@ -484,6 +499,29 @@
       position: relative;
     }
 
+    /* Botó rodó de geolocalització a la dreta de l'input (amb tooltip a PC) */
+    .mapa-geo-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px; height: 30px;
+      border: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--pink));
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      z-index: 2;
+      transition: filter 0.15s;
+    }
+    .mapa-geo-btn:hover { filter: brightness(1.08); }
+    .mapa-geo-btn svg { width: 14px; height: 14px; display: block; }
+    /* Deixa espai a la dreta per a la X (quan hi ha text) i el botó de geolocalització. */
+    #mapa-search-input { padding-right: 72px !important; }
+    .mapa-search-inp .search-clear-x { right: 38px; }
+
     /* .search-clear-x + amagar X nativa WebKit → shared/css/search.css */
     input[type="search"] { appearance: textfield; }
     .mapa-search-inp input {
@@ -499,28 +537,28 @@
     }
     html.dark .mapa-search-inp input { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
     .mapa-search-inp input:focus { border-color: var(--pink-ink); box-shadow: 0 0 0 3px rgba(245,169,184,0.22); }
-    .mapa-search-inp .sugs {
-      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    /* Es mou al body via JS per escapar l'overflow del sidebar; selectors
+       agnòstics de l'arbre. */
+    #mapa-search-sugs {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
       max-height: 240px; overflow-y: auto;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      z-index: 10;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     }
-    html.dark .mapa-search-inp .sugs { background: #1c1c1e; border-color: rgba(255,255,255,0.1); }
-    .mapa-search-inp .sugs button {
+    html.dark #mapa-search-sugs { background: #1c1c1e; border-color: rgba(255,255,255,0.1); }
+    #mapa-search-sugs button {
       display: block; width: 100%; text-align: left;
       padding: 0.55rem 0.85rem;
       background: transparent; border: 0; border-bottom: 1px solid var(--border);
       font: inherit; font-size: 0.85rem; color: var(--ink);
       cursor: pointer;
     }
-    html.dark .mapa-search-inp .sugs button { border-bottom-color: rgba(255,255,255,0.06); }
-    .mapa-search-inp .sugs button:last-child { border-bottom: 0; }
-    .mapa-search-inp .sugs button:hover { background: var(--bg-soft); }
-    html.dark .mapa-search-inp .sugs button:hover { background: rgba(255,255,255,0.05); }
-    .mapa-search-inp .sugs .sug-hint { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+    html.dark #mapa-search-sugs button { border-bottom-color: rgba(255,255,255,0.06); }
+    #mapa-search-sugs button:last-child { border-bottom: 0; }
+    #mapa-search-sugs button:hover { background: var(--bg-soft); }
+    html.dark #mapa-search-sugs button:hover { background: rgba(255,255,255,0.05); }
+    #mapa-search-sugs .sug-hint { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
 
     .mapa-divider {
       display: flex; align-items: center; gap: 0.5rem;
@@ -1130,13 +1168,11 @@
         <p class="hint">Marca la teva ubicació per veure recursos a prop. El mapa ampliarà al radi que triïs.</p>
 
         <div class="mapa-loc-section">
-          <button class="mapa-loc-btn primary" id="mapa-btn-geo" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg>
-            La meva ubicació
-          </button>
-
           <div class="mapa-search-inp">
             <input type="search" id="mapa-search-input" placeholder="Municipi, codi postal o clica el mapa…" autocomplete="off">
+            <button class="mapa-geo-btn" id="mapa-btn-geo" type="button" title="La meva ubicació" aria-label="La meva ubicació">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg>
+            </button>
             <div class="sugs" id="mapa-search-sugs" style="display:none"></div>
           </div>
 
@@ -1144,18 +1180,20 @@
       </div>
 
       <div id="mapa-loc-active" style="display:none">
-        <div class="mapa-current">
-          <span id="mapa-current-label">📍 La meva ubicació</span>
-          <button class="clear-btn" id="mapa-btn-clear-loc" type="button" aria-label="Netejar ubicació">×</button>
-        </div>
+        <div class="mapa-active-header">
+          <div class="mapa-current">
+            <span id="mapa-current-label">📍 La meva ubicació</span>
+            <button class="clear-btn" id="mapa-btn-clear-loc" type="button" aria-label="Netejar ubicació">×</button>
+          </div>
 
-        <div class="mapa-radius-row" style="margin-top:0.8rem">
-          <label>
-            Radi: <strong><span id="mapa-radius-val">25</span> km</strong>
-          </label>
-          <input type="range" id="mapa-radius-slider" min="0" max="6" step="1" value="2">
-          <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--ink-4)">
-            <span>5</span><span>10</span><span>25</span><span>50</span><span>100</span><span>150</span><span>200</span>
+          <div class="mapa-radius-row">
+            <label>
+              Radi: <strong><span id="mapa-radius-val">25</span> km</strong>
+            </label>
+            <input type="range" id="mapa-radius-slider" min="0" max="6" step="1" value="2">
+            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--ink-4)">
+              <span>5</span><span>10</span><span>25</span><span>50</span><span>100</span><span>150</span><span>200</span>
+            </div>
           </div>
         </div>
 
@@ -2722,14 +2760,12 @@
       byId('mapa-loc-active').style.display = 'block';
       byId('mapa-current-label').textContent = '📍 ' + userLoc.label;
       setMapInteractive(true);
+      // A mòbil, el layout acaba de canviar (picker → active). Invalidem la
+      // mida ABANS de updateUserLayers perquè fitBounds usi la viewport
+      // correcta; si ho féssim després, el cercle quedaria mal centrat.
+      if (window.innerWidth <= 720 && map) map.invalidateSize();
       updateUserLayers();
       updateResultList();
-      // A mòbil no fem auto-scroll al mapa: l'usuari es quedaria sense
-      // accés als controls (radi, picker) que estan al sidebar superior.
-      // Només invalidem la mida de Leaflet per si el layout ha canviat.
-      if (window.innerWidth <= 720 && map) {
-        setTimeout(() => map.invalidateSize(), 200);
-      }
     }
 
     function clearUserLocation() {
@@ -2764,10 +2800,14 @@
         weight: 2,
         dashArray: '6 4',
       }).addTo(map);
-      // Zoom als bounds del cercle + marge (més gran a mòbil perquè la part
-      // inferior del mapa no queda tapada per l'UI)
-      const pad = window.innerWidth <= 720 ? [30, 30] : [20, 20];
-      map.fitBounds(userCircle.getBounds(), { padding: pad });
+      // Zoom als bounds del cercle. A mòbil, empenyem el centre cap amunt
+      // afegint més padding inferior (la part de dalt del mapa acostuma a
+      // tenir espai lliure després del sidebar).
+      if (window.innerWidth <= 720) {
+        map.fitBounds(userCircle.getBounds(), { paddingTopLeft: [10, 10], paddingBottomRight: [10, 110] });
+      } else {
+        map.fitBounds(userCircle.getBounds(), { padding: [20, 20] });
+      }
     }
 
     function haversineKm(a, b) {
@@ -2879,6 +2919,21 @@
     const searchInput = byId('mapa-search-input');
     const searchSugs = byId('mapa-search-sugs');
 
+    // El sugs és dins del sidebar (overflow:auto) → s'hi tallarien. El movem
+    // al body i el posicionem via fixed quan es mostra, perquè es pugui solapar
+    // sobre el mapa.
+    if (searchSugs && searchSugs.parentElement !== document.body) {
+      document.body.appendChild(searchSugs);
+      searchSugs.style.position = 'fixed';
+      searchSugs.style.zIndex = '10000';
+    }
+    function positionSugs() {
+      if (!searchInput || !searchSugs) return;
+      const r = searchInput.getBoundingClientRect();
+      searchSugs.style.top = (r.bottom + 4) + 'px';
+      searchSugs.style.left = r.left + 'px';
+      searchSugs.style.width = r.width + 'px';
+    }
     function showSugs(list) {
       if (!list.length) { searchSugs.style.display = 'none'; return; }
       searchSugs.innerHTML = list.slice(0, 8).map((s, i) =>
@@ -2887,7 +2942,10 @@
           ${s.hint ? `<div class="sug-hint">${escHtml(s.hint)}</div>` : ''}
         </button>`
       ).join('');
+      positionSugs();
       searchSugs.style.display = 'block';
+      window.addEventListener('scroll', positionSugs, { passive: true, once: false });
+      window.addEventListener('resize', positionSugs, { passive: true, once: false });
       searchSugs.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => {
           const i = parseInt(btn.dataset.i, 10);
