@@ -27,6 +27,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
   <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js" defer></script>
   <script src="https://unpkg.com/polygon-clipping@0.15.3/dist/polygon-clipping.umd.js" defer></script>
+  <!-- Força l'inici a la vista "llista" abans que cap codi llegeixi la clau. -->
+  <script src="./shared/js/start-home.js"></script>
+  <script>SharedStartHome && SharedStartHome.forceStartView({ key: 'transitem-vista', homeValue: 'llista' });</script>
 
   <!-- Config del projecte (usat pels mòduls de /shared/) -->
   <script src="./app.config.js"></script>
@@ -428,7 +431,12 @@
     /* ─── MAPA VIEW ────────────────────────────────── */
     #mapa-view {
       display: none;
+      /* Fem servir `dvh` (dynamic viewport height) quan està disponible:
+         a iOS Safari `100vh` inclou l'àrea rere la barra d'adreces, fent que
+         el mapa quedi tallat per sota. Amb `dvh` la mida s'ajusta al viewport
+         visible real. Fallback a `vh` per a navegadors antics. */
       height: calc(100vh - var(--nav-h));
+      height: calc(100dvh - var(--nav-h));
       width: 100%;
       position: relative;
     }
@@ -679,7 +687,7 @@
       body.vista-mapa #mapa-view { flex-direction: column; }
       /* Sidebar limita al 38vh per deixar al mapa ~55vh sencers i així que el
          cercle sencer càpiga a pantalla sense quedar tallat per sota. */
-      #mapa-sidebar { width: 100%; max-height: 38vh; border-right: none; border-bottom: 1px solid var(--border); padding: 0.8rem 0.9rem; }
+      #mapa-sidebar { width: 100%; max-height: 38vh; max-height: 38dvh; border-right: none; border-bottom: 1px solid var(--border); padding: 0.8rem 0.9rem; }
       /* Sense min-height: el mapa omple l'espai restant dins del contenidor
          flex, sense fer-se més gran que el viewport (abans 65vh forçava
          overflow i la part inferior del cercle es retallava). */
@@ -3099,10 +3107,11 @@
     // ─── Inicialitza ──────────────────────────
     renderAjudamOpts();
     renderLlista();
-    // Cada càrrega nova comença a l'inici (llista), encara que la sessió
-    // anterior hagués deixat el mapa obert. El localStorage segueix reflectint
-    // l'estat actual quan l'usuari canvia de vista.
-    setVista('llista');
+    // La vista inicial la fixa `shared/js/start-home.js` (SharedStartHome)
+    // a l'<head>, que reescriu la clau a 'llista' abans que cap codi la
+    // llegeixi. Aquí només restaurem el que hi ha al storage, que sempre
+    // serà 'llista' a la primera càrrega.
+    setVista(getVista());
     updateAjudamCount();
   })();
   </script>
