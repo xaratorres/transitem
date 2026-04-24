@@ -1,0 +1,101 @@
+/* navbar.css — estructura compartida del nav + nav-btn.
+ *
+ * Pattern comú entre Denunciem, Ciutadata i Transitem:
+ *  <nav>
+ *    <div class="brand">…</div>          (per-projecte, no compartit)
+ *    <div class="nav-btns">
+ *      <button class="nav-btn">…</button>
+ *      <button class="nav-btn icon">…</button>  (icon-only, no label visible)
+ *    </div>
+ *  </nav>
+ *
+ * Variables esperades (de tokens.css):
+ *   --nav-h, --bg, --border, --ink
+ *
+ * NO inclou:
+ *  - .brand (font/style varia per projecte: Transitem té Playfair em italic)
+ *  - botons específics per ID (#btn-ajudam gradient, etc.)
+ *  - .chip-revisio (només Transitem/Denunciem)
+ */
+
+nav {
+  position: sticky; top: 0; z-index: 5000;
+  height: var(--nav-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.nav-btns {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.nav-btn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.48);
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 100px;
+  padding: 5px 14px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-btn:hover {
+  color: var(--ink);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.nav-btn.icon {
+  padding: 5px 10px;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+}
+
+.nav-btn .nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.nav-btn.icon .nav-label {
+  display: none;
+}
+
+/* ── Mòbil ─────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .nav-btns {
+    gap: 5px;
+  }
+  .nav-btn {
+    padding: 6px 10px;
+    letter-spacing: 0.05em;
+    font-size: 0.68rem;
+  }
+  .nav-btn.icon {
+    padding: 6px 8px;
+  }
+}
+
+/* ── Dark mode ─────────────────────────────────────── */
+html.dark nav {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .nav-btn {
+  color: rgba(255, 255, 255, 0.48);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .nav-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+}

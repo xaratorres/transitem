@@ -1,0 +1,18 @@
+{
+  "name": "Transitem.cat",
+  "short_name": "Transitem",
+  "description": "Guia de recursos per a persones trans i no binàries a Catalunya — administració, associacions, col·lectius i grups de suport.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#5BCEFA",
+  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

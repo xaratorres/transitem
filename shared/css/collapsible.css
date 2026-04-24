@@ -1,0 +1,143 @@
+/* collapsible.css — `<details>` estilitzat (basat en fonts-seccio de Ciutadata).
+ *
+ * Markup esperat:
+ *   <details class="collapsible">
+ *     <summary>Títol uppercase</summary>
+ *     <div class="collapsible-body">
+ *       <p>Contingut...</p>
+ *       <ul class="collapsible-list">
+ *         <li>Item</li>
+ *       </ul>
+ *     </div>
+ *   </details>
+ *
+ * Color accent: usa `var(--primary)`. Cada projecte el seteja al :root
+ * inline (Transitem: var(--pink-ink), Denunciem: var(--red), etc.). Si no
+ * està definit, fallback a var(--ink) (text normal).
+ *
+ * Usat per:
+ *  - shared/js/about-modal.js (render automàtic de cfg.sections)
+ *  - manualment en qualsevol HTML que vulgui details col·lapsables
+ */
+
+details.collapsible {
+  margin: 0.5rem 0 0;
+}
+
+details.collapsible + details.collapsible {
+  margin-top: 0.25rem;
+}
+
+details.collapsible summary {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0 0.3rem;
+  user-select: none;
+}
+
+/* El color s'aplica al .collapsible-label (span dins del summary) perquè
+ * en alguns contextos el navegador no aplica color directament al <summary>.
+ * Si el summary té text directe (sense .collapsible-label), aplica al summary
+ * i confiem que el navegador hi cooperi. */
+details.collapsible summary,
+details.collapsible .collapsible-label {
+  color: var(--ink-3);
+  transition: color 0.15s;
+}
+
+details.collapsible summary::-webkit-details-marker { display: none; }
+
+details.collapsible summary::before {
+  content: '›';
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.2s, color 0.15s;
+  color: var(--ink-4);
+}
+
+details.collapsible[open] summary,
+details.collapsible[open] .collapsible-label,
+details.collapsible summary:hover,
+details.collapsible summary:hover .collapsible-label {
+  color: var(--primary, var(--ink));
+}
+
+details.collapsible[open] summary::before,
+details.collapsible summary:hover::before {
+  transform: rotate(90deg);
+  color: var(--primary, var(--ink));
+}
+
+/* (només ::before del [open] és el que rota — hover no rota; refinament: */
+details.collapsible summary:hover::before { transform: none; }
+details.collapsible[open] summary::before { transform: rotate(90deg); }
+
+.collapsible-body {
+  padding: 0.1rem 0 0.6rem 1.1rem;
+}
+
+.collapsible-body p {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin-bottom: 0.5rem;
+}
+
+.collapsible-body p:last-child {
+  margin-bottom: 0;
+}
+
+.collapsible-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.collapsible-list li {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+  padding: 0.1rem 0 0.1rem 1rem;
+  position: relative;
+}
+
+.collapsible-list li::before {
+  content: '·';
+  position: absolute;
+  left: 0.2rem;
+  color: var(--ink-4);
+}
+
+/* ── Dark mode ────────────────────────────────────── */
+/* Specificity equal: ID-free a tots dos mode, però open/hover ha de venir
+ * DESPRÉS al cascade per guanyar dins dark. Doblem les regles open/hover
+ * amb prefix html.dark per igualar la jerarquia.
+ */
+html.dark details.collapsible summary,
+html.dark details.collapsible .collapsible-label {
+  color: var(--ink-3);
+}
+
+html.dark details.collapsible summary::before {
+  color: var(--ink-4);
+}
+
+html.dark details.collapsible[open] summary,
+html.dark details.collapsible[open] .collapsible-label,
+html.dark details.collapsible summary:hover,
+html.dark details.collapsible summary:hover .collapsible-label {
+  color: var(--primary, var(--ink));
+}
+
+html.dark details.collapsible[open] summary::before,
+html.dark details.collapsible summary:hover::before {
+  color: var(--primary, var(--ink));
+}

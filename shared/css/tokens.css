@@ -1,0 +1,51 @@
+/* tokens.css — variables CSS estructurals compartides
+ *
+ * Conté NOMÉS vars que són comunes als projectes (escala de grises, mides,
+ * radis). Les vars de marca (color primari, accents) viuen al `:root` inline
+ * de cada projecte perquè varien massa.
+ *
+ * Light mode: a :root.
+ * Dark mode: html.dark sobreescriu les que canvien.
+ *
+ * Convenció:
+ *   --bg, --bg-soft         fons (principal i secundari)
+ *   --ink, --ink-2/3/4      escala de text (jeràrquica per protagonisme)
+ *   --border, --border-2    separadors (subtil i marcat)
+ *   --gap, --radius         espaiat i corner radius base
+ *   --nav-h                 alçada navbar sticky
+ */
+
+:root {
+  /* Estructurals */
+  --nav-h: 54px;
+  --gap: 4px;
+  --radius: 6px;
+
+  /* Escala de fons */
+  --bg: #ffffff;
+  --bg-soft: #FAFAFA;
+
+  /* Escala de text (1=protagonista, 4=auxiliar) */
+  --ink:   #0a0a0a;
+  --ink-2: #404040;
+  --ink-3: #737373;
+  --ink-4: #a3a3a3;
+
+  /* Separadors */
+  --border:   #e5e5e5;
+  --border-2: #d4d4d4;
+}
+
+/* ── Dark mode ─────────────────────────────────────── */
+html.dark {
+  --bg:      #111112;
+  --bg-soft: #1c1c1e;
+
+  --ink:   #e8e6e2;
+  --ink-2: rgba(255, 255, 255, 0.68);
+  --ink-3: rgba(255, 255, 255, 0.45);
+  --ink-4: rgba(255, 255, 255, 0.28);
+
+  --border:   rgba(255, 255, 255, 0.08);
+  --border-2: rgba(255, 255, 255, 0.14);
+}

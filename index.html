@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Transitem">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Transitem.cat — Xarxa de suport a persones trans</title>
+  <meta name="description" content="Directori obert de recursos per a persones trans i no binàries: administració, associacions, col·lectius i grups de suport. Per a Catalunya, País Valencià, Illes Balears i altres territoris de parla catalana.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+  <script defer src="/_vercel/insights/script.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+  <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js" defer></script>
+
+  <!-- Config del projecte (usat pels mòduls de /shared/) -->
+  <script src="./app.config.js"></script>
+
+  <!-- Mòduls compartits — sincronitzats des de C:\Projectes\_shared\ via sync.sh -->
+  <link rel="stylesheet" href="./shared/css/tokens.css">
+  <link rel="stylesheet" href="./shared/css/base.css">
+  <link rel="stylesheet" href="./shared/css/navbar.css">
+  <link rel="stylesheet" href="./shared/css/modals.css">
+  <link rel="stylesheet" href="./shared/css/collapsible.css">
+  <link rel="stylesheet" href="./shared/css/category-group.css">
+  <script src="./shared/js/overlay.js" defer></script>
+  <script src="./shared/js/theme.js" defer></script>
+  <script src="./shared/js/splash.js" defer></script>
+  <script src="./shared/js/install-prompt.js" defer></script>
+  <script src="./shared/js/sw-register.js" defer></script>
+  <script src="./shared/js/onboarding.js" defer></script>
+  <script src="./shared/js/about-modal.js" defer></script>
+  <script src="./shared/js/legal-kit.js" defer></script>
+  <script src="./shared/js/cache-control.js" defer></script>
+
+  <style>
+    /* * reset, html/body/a/button base → shared/css/base.css */
+    /* tokens estructurals (--bg, --ink-*, --border-*, --gap, --radius, --nav-h) → shared/css/tokens.css */
+
+    /* Vars de marca específiques de Transitem (NO compartibles): */
+    :root {
+      --blue:      #7BC0E8;
+      --blue-ink:  #1E6FA0;
+      --pink:      #F5A9B8;
+      --pink-ink:  #B83B5E;
+
+      --t-administracio:  #0284C7;
+      --t-associacio:     #EC4899;
+      --t-collectiu:      #7C3AED;
+      --t-grup_informal:  #10B981;
+
+      /* Color accent per als mòduls shared (collapsible, etc.) */
+      --primary: var(--pink-ink);
+    }
+
+    /* ─── SPLASH ─────────────────────────────────── */
+    #splash {
+      position: fixed; inset: 0; z-index: 20000;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 1.2s cubic-bezier(0.4,0,0.2,1), visibility 1.2s;
+    }
+    #splash::before, #splash::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 50%;
+    }
+    #splash::before { left: 0; background: var(--blue); }
+    #splash::after  { right: 0; background: var(--pink); }
+    #splash.out { opacity: 0; visibility: hidden; pointer-events: none; }
+    #splash-inner {
+      position: relative; z-index: 2; text-align: center;
+    }
+    #splash-t {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 800;
+      font-size: clamp(9rem, 30vw, 18rem);
+      line-height: 0.85;
+      color: #fff;
+      letter-spacing: -0.02em;
+      text-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+    #splash-sub {
+      margin-top: 1rem;
+      font-size: clamp(0.75rem, 1.9vw, 1rem);
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.95);
+    }
+    #splash-hint {
+      position: absolute; bottom: 2.5rem; left: 0; right: 0; text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.8);
+      animation: blink 2.4s ease-in-out infinite;
+      z-index: 3;
+    }
+    @keyframes blink { 0%,100%{opacity:.35} 50%{opacity:.85} }
+
+    /* ─── NAV ────────────────────────────────────── */
+    /* nav, .nav-btns, .nav-btn (+ dark + mobile) → shared/css/navbar.css */
+    .brand {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .brand-name { color: var(--ink); }
+    .brand-name .em {
+      color: var(--pink-ink);
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .chip-revisio {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: rgba(4,120,87,0.12);
+      color: #047857;
+      border: 1px solid rgba(4,120,87,0.28);
+      border-radius: 100px;
+      padding: 3px 10px 3px 8px;
+    }
+    .chip-revisio::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #047857;
+      box-shadow: 0 0 0 3px rgba(4,120,87,0.18);
+      animation: chip-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes chip-pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    @media (max-width: 560px) {
+      .brand { gap: 7px; }
+      .chip-revisio { display: none; }
+    }
+
+    /* .nav-btns + .nav-btn (+ variants .icon, .nav-icon) → shared/css/navbar.css */
+    .nav-btn.active-filter { color: var(--pink-ink); border-color: var(--pink-ink); }
+
+    #btn-ajudam {
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+      border-color: transparent;
+      animation: ajudam-pulse 2.4s ease-in-out infinite;
+    }
+    #btn-ajudam:hover {
+      filter: brightness(0.95);
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+      border-color: transparent;
+      animation-play-state: paused;
+    }
+    #btn-ajudam.active-filter { animation: none; }
+    @keyframes ajudam-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(245,169,184,0.6); }
+      70%  { box-shadow: 0 0 0 12px rgba(245,169,184,0); }
+      100% { box-shadow: 0 0 0 0 rgba(245,169,184,0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #btn-ajudam { animation: none; }
+    }
+    #btn-sobre .nav-label { display: none; }
+    #btn-sobre { padding: 6px 8px; }
+    /* .nav-btns/.nav-btn mòbil → shared/css/navbar.css */
+    @media (max-width: 560px) {
+      .brand { font-size: 1.25rem; }
+    }
+
+    /* ─── LLISTA VIEW ─────────────────────────────── */
+    .llista-view {
+      display: none;
+      padding: 20px 22px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    body.vista-llista .llista-view { display: block; }
+    body.vista-llista { overflow-y: auto; overflow-x: hidden; }
+
+    .llista-intro { padding: 0.4rem 0.2rem 1.4rem; border-bottom: 1px solid rgba(0,0,0,0.08); margin-bottom: 0.5rem; }
+    .llista-intro h1 {
+      font-size: clamp(1.4rem, 3vw, 1.8rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+    .llista-intro h1 .em-b { color: var(--blue-ink); }
+    .llista-intro h1 .em-p { color: var(--pink-ink); }
+    .llista-intro p {
+      font-size: 0.95rem;
+      color: var(--ink-2);
+      line-height: 1.6;
+      max-width: 68ch;
+    }
+    .llista-intro p + p { margin-top: 0.6rem; }
+    .llista-intro .hint-ajudam,
+    .llista-intro .hint-map {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+    .llista-intro .hint-ajudam {
+      background: linear-gradient(90deg, rgba(123,192,232,0.15), rgba(245,169,184,0.15));
+      color: var(--pink-ink);
+    }
+    .llista-intro .hint-map {
+      background: rgba(37,99,235,0.10);
+      color: var(--t-administracio);
+    }
+    .llista-intro .hint-map svg { width: 13px; height: 13px; }
+
+    .llista-sec-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 1.2rem 0 0.6rem;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+    }
+    .llista-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 30px;
+      padding: 2px 10px;
+      background: var(--pink-ink);
+      color: #fff;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .llista-count.clearable { cursor: pointer; }
+    .llista-count.clearable:hover { background: #8d2d48; }
+    .llista-count.clearable:active { transform: scale(0.95); }
+    .llista-count .x-clear { width: 10px; height: 10px; opacity: 0; transition: opacity 0.15s; }
+    .llista-count.clearable .x-clear { opacity: 0.85; }
+
+    .llista-search { position: relative; margin: 0.2rem 0 0.9rem; }
+    .llista-search-ico {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-3); pointer-events: none;
+    }
+    .llista-search input {
+      width: 100%;
+      padding: 0.55rem 0.9rem 0.55rem 2.2rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.92rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .llista-search input:focus {
+      outline: none;
+      border-color: var(--pink-ink);
+      box-shadow: 0 0 0 3px rgba(245,169,184,0.24);
+    }
+
+    mark.hl {
+      background: rgba(245,169,184,0.45);
+      color: inherit;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    .llista-empty {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--ink-3);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .llista-empty strong { color: var(--ink); font-weight: 600; }
+
+    /* ── Categories (llista agrupada) → shared/css/category-group.css */
+
+    .entitat-item {
+      display: flex; align-items: flex-start; gap: 0.85rem;
+      padding: 0.75rem 0.5rem;
+      border-radius: 10px;
+      transition: background 0.12s;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .entitat-item:hover { background: rgba(0,0,0,0.03); }
+    .entitat-item:last-of-type { border-bottom: none; }
+    .entitat-ico {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: var(--tipcolor);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .entitat-ico.ico-len-2 { font-size: 0.92rem; letter-spacing: -0.04em; }
+    .entitat-ico.ico-len-3 { font-size: 0.78rem; letter-spacing: -0.04em; }
+    .entitat-ico.ico-len-4 { font-size: 0.64rem; letter-spacing: -0.05em; }
+    .entitat-ico.ico-len-5 { font-size: 0.55rem; letter-spacing: -0.05em; }
+    .entitat-info { flex: 1; min-width: 0; }
+    .entitat-nom { font-size: 0.92rem; font-weight: 600; color: var(--ink); line-height: 1.25; }
+    .entitat-ambit { font-size: 0.75rem; color: var(--ink-3); margin-top: 2px; }
+    .entitat-desc { font-size: 0.82rem; color: var(--ink-2); line-height: 1.5; margin-top: 6px; }
+    .entitat-item .entitat-loc {
+      font-size: 0.72rem;
+      color: var(--ink-3);
+      margin-top: 4px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .entitat-item.estat-tancat .entitat-ico { opacity: 0.5; }
+    .entitat-item.estat-tancat .entitat-nom::after {
+      content: 'Tancat';
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: #FEF3C7; color: #92400E;
+      padding: 1px 7px; border-radius: 100px;
+      vertical-align: 1px;
+    }
+    .entitat-item.estat-no_actiu { opacity: 0.52; }
+    .entitat-item.estat-no_actiu .entitat-nom::after {
+      content: 'No actiu';
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--border); color: var(--ink-3);
+      padding: 1px 7px; border-radius: 100px;
+      vertical-align: 1px;
+    }
+
+    .llista-grup-plegar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 14px;
+      margin-top: 8px;
+      background: transparent;
+      color: var(--ink-3);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .llista-grup-plegar:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
+    .llista-grup-plegar svg { width: 14px; height: 14px; }
+
+    .llista-footer {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      padding-bottom: 0.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--ink-3);
+      line-height: 1.5;
+    }
+    .llista-footer strong { color: var(--ink-2); font-weight: 600; }
+    .llista-footer a { color: var(--pink-ink); border-bottom: 1px solid rgba(184,59,94,0.35); }
+
+    /* Desktop 2 cols */
+    @media (min-width: 960px) {
+      body.vista-llista .llista-view {
+        max-width: 1280px;
+        padding: 20px 32px 16px;
+        display: grid;
+        grid-template-columns: minmax(320px, 360px) 1fr;
+        column-gap: 48px;
+        align-items: start;
+      }
+      body.vista-llista .llista-intro {
+        position: sticky;
+        top: 0;
+        padding: 0.2rem 0 1rem;
+        border-bottom: none;
+        margin-bottom: 0;
+        align-self: start;
+      }
+      body.vista-llista .llista-intro h1 { font-size: 2rem; }
+      body.vista-llista .llista-rightcol { grid-column: 2; }
+      body.vista-llista .llista-rightcol .llista-sec-title { margin: 0 0 0.6rem; }
+      body.vista-llista .llista-view > .llista-footer { grid-column: 1 / -1; margin-top: 1rem; }
+    }
+
+    /* ─── MAPA VIEW ────────────────────────────────── */
+    #mapa-view {
+      display: none;
+      height: calc(100vh - var(--nav-h));
+      width: 100%;
+      position: relative;
+    }
+    body.vista-mapa #mapa-view { display: flex; }
+    body.vista-mapa { overflow: hidden; }
+    body.vista-mapa .llista-view { display: none; }
+    #mapa-container { flex: 1; height: 100%; min-width: 0; }
+
+    /* Sidebar amb el location picker + radi */
+    #mapa-sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 1.2rem 1rem;
+      background: var(--bg);
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    html.dark #mapa-sidebar { background: var(--bg); border-right-color: rgba(255,255,255,0.08); }
+    #mapa-sidebar h3 {
+      font-size: 0.9rem; font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.2rem;
+      color: var(--ink);
+    }
+    #mapa-sidebar p.hint {
+      font-size: 0.8rem; color: var(--ink-3); line-height: 1.45;
+      margin-bottom: 0.6rem;
+    }
+    .mapa-loc-section { display: flex; flex-direction: column; gap: 0.55rem; }
+    .mapa-loc-btn {
+      padding: 0.65rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      transition: background 0.15s, border-color 0.15s;
+      text-align: left;
+    }
+    .mapa-loc-btn:hover { background: var(--bg-soft); border-color: var(--ink-3); }
+    .mapa-loc-btn.primary {
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff; border-color: transparent;
+    }
+    .mapa-loc-btn.primary:hover { filter: brightness(0.95); background: linear-gradient(90deg, var(--blue), var(--pink)); }
+    html.dark .mapa-loc-btn { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); color: var(--ink); }
+    html.dark .mapa-loc-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.3); }
+
+    .mapa-search-inp {
+      position: relative;
+    }
+    .mapa-search-inp input {
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit; font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    html.dark .mapa-search-inp input { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
+    .mapa-search-inp input:focus { border-color: var(--pink-ink); box-shadow: 0 0 0 3px rgba(245,169,184,0.22); }
+    .mapa-search-inp .sugs {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 240px; overflow-y: auto;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      z-index: 10;
+    }
+    html.dark .mapa-search-inp .sugs { background: #1c1c1e; border-color: rgba(255,255,255,0.1); }
+    .mapa-search-inp .sugs button {
+      display: block; width: 100%; text-align: left;
+      padding: 0.55rem 0.85rem;
+      background: transparent; border: 0; border-bottom: 1px solid var(--border);
+      font: inherit; font-size: 0.85rem; color: var(--ink);
+      cursor: pointer;
+    }
+    html.dark .mapa-search-inp .sugs button { border-bottom-color: rgba(255,255,255,0.06); }
+    .mapa-search-inp .sugs button:last-child { border-bottom: 0; }
+    .mapa-search-inp .sugs button:hover { background: var(--bg-soft); }
+    html.dark .mapa-search-inp .sugs button:hover { background: rgba(255,255,255,0.05); }
+    .mapa-search-inp .sugs .sug-hint { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+
+    .mapa-divider {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.75rem; color: var(--ink-4);
+      text-align: center;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin: 0.2rem 0;
+    }
+    .mapa-divider::before, .mapa-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* Estat: ubicació activa */
+    .mapa-current {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      padding: 0.7rem 0.85rem;
+      background: linear-gradient(90deg, rgba(123,192,232,0.12), rgba(245,169,184,0.12));
+      border: 1px solid rgba(245,169,184,0.5);
+      border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600;
+      color: var(--ink);
+    }
+    html.dark .mapa-current { background: linear-gradient(90deg, rgba(123,192,232,0.18), rgba(245,169,184,0.18)); }
+    .mapa-current .clear-btn {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,0.08); color: var(--ink-2);
+      border: 0; font-size: 0.85rem; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    html.dark .mapa-current .clear-btn { background: rgba(255,255,255,0.15); color: var(--ink); }
+    .mapa-current .clear-btn:hover { background: var(--pink-ink); color: #fff; }
+
+    .mapa-radius-row {
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .mapa-radius-row label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 0.82rem; color: var(--ink-2);
+    }
+    .mapa-radius-row label strong {
+      color: var(--ink); font-weight: 800; font-size: 1rem;
+    }
+    .mapa-radius-row input[type=range] {
+      width: 100%;
+      accent-color: var(--pink-ink);
+    }
+
+    .mapa-result-count {
+      font-size: 0.82rem;
+      color: var(--ink-3);
+      text-align: center;
+      padding: 0.5rem;
+      background: var(--bg-soft);
+      border-radius: 8px;
+    }
+    .mapa-result-count strong { color: var(--ink); font-weight: 700; }
+    html.dark .mapa-result-count { background: rgba(255,255,255,0.04); }
+
+    .mapa-result-list {
+      display: flex; flex-direction: column; gap: 0.4rem;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    .mapa-result-item {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--tipcolor, var(--ink-4));
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    html.dark .mapa-result-item { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+    .mapa-result-item:hover { background: var(--bg-soft); }
+    html.dark .mapa-result-item:hover { background: rgba(255,255,255,0.07); }
+    .mapa-result-item .nom { font-size: 0.85rem; font-weight: 600; line-height: 1.3; }
+    .mapa-result-item .meta {
+      font-size: 0.72rem; color: var(--ink-3); margin-top: 2px;
+      display: flex; justify-content: space-between; gap: 0.5rem;
+    }
+    .mapa-result-item .dist {
+      background: var(--blue);
+      color: #fff;
+      padding: 1px 8px; border-radius: 100px;
+      font-size: 0.68rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 720px) {
+      body.vista-mapa #mapa-view { flex-direction: column; }
+      #mapa-sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
+      #mapa-container { flex: 1; min-height: 50vh; }
+    }
+
+    .mapa-search {
+      flex: 1;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 10px;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .mapa-search input {
+      border: none; background: transparent; outline: none;
+      flex: 1; font: inherit; font-size: 0.88rem;
+    }
+    .popup-nom { font-weight: 700; font-size: 0.92rem; margin-bottom: 3px; }
+    .popup-muni { color: var(--ink-3); font-size: 0.78rem; margin-bottom: 6px; }
+    .popup-btn { color: var(--pink-ink); font-weight: 600; font-size: 0.82rem; cursor: pointer; }
+
+    /* Llegenda del mapa (inferior-esquerre) */
+    .mapa-legend {
+      position: absolute;
+      bottom: 12px; left: 12px;
+      z-index: 500;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-size: 0.72rem;
+      display: flex; flex-direction: column; gap: 5px;
+      pointer-events: none;
+    }
+    .mapa-legend-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-3);
+      margin-bottom: 2px;
+    }
+    .mapa-legend-row {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--ink-2);
+    }
+    .mapa-legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+    html.dark .mapa-legend {
+      background: rgba(28,28,30,0.95);
+      border-color: rgba(255,255,255,0.08);
+    }
+    html.dark .mapa-legend-row { color: rgba(255,255,255,0.75); }
+
+    /* Etiquetes dels territoris al mapa (només visibles al zoom baix) */
+    .mapa-terri-label {
+      text-align: center;
+      pointer-events: none !important;
+      background: transparent !important;
+      border: 0 !important;
+    }
+    .mapa-terri-label span {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(0,0,0,0.55);
+      text-shadow: 0 0 3px rgba(248,250,252,0.95), 0 0 5px rgba(248,250,252,0.95), 0 0 5px rgba(248,250,252,0.95);
+      white-space: nowrap;
+    }
+
+    /* ─── OVERLAY / MODAL BASE → shared/css/modals.css ── */
+
+    /* ── Ajuda'm ── */
+    #overlay-ajudam .modal { max-height: 94vh; overflow-y: auto; }
+    @media (min-width: 960px) { #overlay-ajudam .modal { width: min(880px, 94vw); } }
+    #overlay-ajudam .modal h2 { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ajudam-count {
+      display: inline-flex; align-items: center;
+      min-width: 36px; height: 26px; padding: 0 10px;
+      background: var(--ink); color: var(--bg);
+      border-radius: 100px;
+      font-size: 0.78rem; font-weight: 700;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+    .ajudam-count.zero {
+      background: var(--pink-ink);
+      color: #fff;
+      animation: count-shake 0.45s ease-out;
+    }
+    @keyframes count-shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(2px); }
+    }
+    .ajudam-lead-wrap { position: relative; margin-top: -0.3rem; margin-bottom: 1.4rem; }
+    .ajudam-lead, .ajudam-zero-warn {
+      font-size: 0.88rem;
+      color: var(--ink-3);
+      line-height: 1.5;
+    }
+    .ajudam-zero-warn {
+      display: none;
+      color: var(--pink-ink);
+      font-weight: 600;
+    }
+    .ajudam-zero-warn.visible { display: block; }
+    .ajudam-zero-warn.visible + .ajudam-lead { display: none; }
+
+    .ajudam-grup { margin-bottom: 1.4rem; }
+    .ajudam-grup:last-of-type { margin-bottom: 0.6rem; }
+    .ajudam-q {
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--pink-ink);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ajudam-check {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--pink-ink); color: #fff;
+      opacity: 0;
+      transform: scale(0.3);
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+    }
+    .ajudam-check.visible { opacity: 1; transform: scale(1); }
+    .ajudam-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ajudam-opt {
+      padding: 7px 13px;
+      border-radius: 100px;
+      border: 1px solid var(--border-2);
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--ink-2);
+      background: transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .ajudam-opt:hover { border-color: var(--ink-3); color: var(--ink); }
+    .ajudam-opt.selected {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    /* ── Fitxa (modal detall) ── */
+    #fitxa-modal { padding-top: 0; }
+    .fitxa-head {
+      border-bottom: 1px solid var(--border);
+      padding: 1.6rem 1.8rem 1rem;
+      border-top: 6px solid var(--tipcolor);
+      border-radius: 14px 14px 0 0;
+      margin: -1.6rem -1.8rem 0;
+    }
+    .fitxa-tipus {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--tipcolor);
+      margin-bottom: 0.3rem;
+    }
+    .fitxa-nom {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.18;
+      margin-bottom: 0.25rem;
+    }
+    .fitxa-ambit { font-size: 0.88rem; color: var(--ink-3); }
+    .fitxa-body { padding: 1.2rem 0 0.5rem; display: flex; flex-direction: column; gap: 1.2rem; }
+    .fitxa-section h4 {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-3);
+      margin-bottom: 0.4rem;
+    }
+    .fitxa-section p { font-size: 0.92rem; line-height: 1.55; color: var(--ink-2); }
+    .fitxa-section ul { list-style: none; padding: 0; }
+    .fitxa-section ul li {
+      padding: 5px 0 5px 22px;
+      font-size: 0.89rem;
+      line-height: 1.45;
+      color: var(--ink-2);
+      position: relative;
+    }
+    .fitxa-section ul li::before {
+      content: '→';
+      position: absolute; left: 0;
+      color: var(--tipcolor);
+      font-weight: 700;
+    }
+    .fitxa-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .fitxa-tag {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 100px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      color: var(--ink-2);
+    }
+    .fitxa-contact { display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; color: var(--ink-2); }
+    .fitxa-contact a { color: var(--blue-ink); word-break: break-all; }
+    .fitxa-contact a:hover { text-decoration: underline; }
+    .fitxa-contact-row { display: flex; gap: 6px; align-items: flex-start; }
+    .fitxa-contact-label { flex-shrink: 0; color: var(--ink-3); min-width: 80px; font-size: 0.78rem; padding-top: 2px; }
+    .fitxa-cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%;
+      padding: 13px 20px;
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+      transition: filter 0.15s;
+      margin-top: 0.4rem;
+    }
+    .fitxa-cta:hover { filter: brightness(0.95); }
+    .fitxa-notes {
+      background: #FEF9E7;
+      border: 1px solid #FCE496;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      color: #78571A;
+      line-height: 1.45;
+    }
+
+    /* ── Sobre ── */
+    #overlay-sobre .modal { padding: 1.3rem 1.5rem 1rem; }
+    #overlay-sobre .modal .sobre-hero {
+      text-align: center;
+      padding: 0 0 0.3rem;
+    }
+    .sobre-hero-t {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 800;
+      font-size: 3.4rem;
+      line-height: 1;
+      background: linear-gradient(90deg, var(--blue) 0 50%, var(--pink) 50% 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    #overlay-sobre .modal h2 { font-size: 1.2rem; margin-bottom: 0.6rem; text-align: center; }
+    .sobre-cos p { font-size: 0.88rem; line-height: 1.5; color: var(--ink-2); margin-bottom: 0.55rem; }
+    .sobre-cos p:last-child { margin-bottom: 0; }
+
+    /* ── Config (versió compacta estil Denunciem) ── */
+    #overlay-config .modal { padding: 1.3rem 1.5rem 1rem; }
+    #overlay-config .modal h2 { font-size: 1.25rem; margin-bottom: 0.8rem; }
+    .config-seccio { margin-top: 0.8rem; }
+    .config-seccio:first-of-type { margin-top: 0.6rem; }
+    .config-titol {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 0.35rem;
+    }
+    .config-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.8rem; padding: 0.25rem 0;
+    }
+    .config-row-label { font-size: 0.88rem; color: var(--ink); line-height: 1.3; }
+    .config-hint { font-size: 0.74rem; color: var(--ink-3); margin-top: 1px; }
+    .config-btn {
+      padding: 6px 13px;
+      border-radius: 100px;
+      background: rgba(0,0,0,0.06);
+      color: var(--ink);
+      font-size: 0.8rem; font-weight: 600;
+      transition: background 0.15s;
+      border: none;
+      flex-shrink: 0;
+    }
+    .config-btn:hover { background: rgba(0,0,0,0.11); }
+    .config-btn.primary {
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+    }
+    .config-btn.primary:hover { filter: brightness(0.95); background: linear-gradient(90deg, var(--blue), var(--pink)); }
+
+    /* Toggle rodó */
+    .toggle {
+      width: 44px; height: 26px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 13px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle::after {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: white;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on { background: var(--pink-ink); }
+    .toggle.on::after { transform: translateX(18px); }
+
+    /* Vista pill switch */
+    .config-vista-switch {
+      display: inline-flex;
+      background: rgba(0,0,0,0.06);
+      border-radius: 100px;
+      padding: 3px;
+    }
+    .config-vista-switch button {
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--ink-2);
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .config-vista-switch button.active {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    /* ── Onboarding ── */
+    #overlay-onboarding .modal { width: min(540px, 94vw); padding: 2rem 2rem 1.4rem; }
+    .onboarding-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 1.1rem;
+      flex-wrap: wrap;
+    }
+    .onboarding-title {
+      font-size: 1.3rem; font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    #onboarding-text p {
+      font-size: 0.96rem;
+      line-height: 1.65;
+      color: var(--ink-2);
+      margin-bottom: 0.8rem;
+    }
+    #onboarding-text p:last-child { margin-bottom: 0; }
+    #onboarding-text .hint-ajudam {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      background: linear-gradient(90deg, rgba(123,192,232,0.18), rgba(245,169,184,0.18));
+      color: var(--pink-ink);
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+    #btn-entesos {
+      margin-top: 1.3rem;
+      padding: 12px 28px;
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      width: 100%;
+      text-align: center;
+      transition: filter 0.15s;
+    }
+    #btn-entesos:hover { filter: brightness(0.95); }
+
+    /* ───────────── MODE NIT ───────────── */
+    /* Tokens estructurals dark (--bg, --ink-*, --border-*) → shared/css/tokens.css */
+    /* (html.dark body cau redundant ara que html/body llegeixen var(--bg)/var(--ink) de base.css) */
+    html.dark #splash-hint { color: rgba(255,255,255,0.8); }
+    /* html.dark nav, html.dark .nav-btn (+ hover) → shared/css/navbar.css */
+    html.dark .brand-name { color: var(--ink); }
+    html.dark .chip-revisio { background: rgba(4,120,87,0.2); color: #34d399; border-color: rgba(52,211,153,0.35); }
+    html.dark .chip-revisio::before { background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.22); }
+    html.dark .llista-intro { border-bottom-color: rgba(255,255,255,0.08); }
+    html.dark .llista-intro .hint-ajudam { background: linear-gradient(90deg, rgba(123,192,232,0.25), rgba(245,169,184,0.25)); color: #fca5c8; }
+    html.dark .llista-intro .hint-map { background: rgba(37,99,235,0.22); color: #93c5fd; }
+    /* html.dark details.category-group → shared/css/category-group.css */
+    html.dark .entitat-item { border-bottom-color: rgba(255,255,255,0.06); }
+    html.dark .entitat-item:hover { background: rgba(255,255,255,0.04); }
+    html.dark .llista-search input { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); color: var(--ink); }
+    html.dark .llista-search input:focus { border-color: var(--pink-ink); box-shadow: 0 0 0 3px rgba(245,169,184,0.28); }
+    html.dark mark.hl { background: rgba(245,169,184,0.38); color: #fff; }
+    html.dark .llista-footer { border-top-color: rgba(255,255,255,0.08); background: var(--bg); }
+    html.dark .llista-grup-plegar:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    /* html.dark .overlay → shared/css/modals.css */
+    html.dark .modal { background: #1c1c1e; }
+    /* .modal-close dark mode → shared/css/modals.css */
+    html.dark .modal-footer { border-top-color: rgba(255,255,255,0.08); }
+    html.dark .fitxa-tag { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+    html.dark .fitxa-contact a { color: #93c5fd; }
+    html.dark .fitxa-notes { background: rgba(251, 191, 36, 0.08); color: #fbbf24; border-color: rgba(251,191,36,0.18); }
+    html.dark .ajudam-q { color: #fca5c8; }
+    html.dark .ajudam-opt { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.68); }
+    html.dark .ajudam-opt:hover { border-color: rgba(255,255,255,0.35); color: #fff; }
+    html.dark .ajudam-opt.selected { background: var(--ink); color: #111; border-color: var(--ink); }
+    html.dark .ajudam-zero-warn { color: #fca5c8; }
+    html.dark .config-seccio { border-top-color: rgba(255,255,255,0.08); }
+    html.dark .toggle { background: rgba(255,255,255,0.14); }
+    html.dark .config-vista-switch { background: rgba(255,255,255,0.08); }
+    html.dark .config-vista-switch button { color: rgba(255,255,255,0.65); }
+    html.dark .config-vista-switch button.active { background: var(--ink); color: #111; }
+    html.dark .config-btn { background: rgba(255,255,255,0.10); color: var(--ink); }
+    html.dark .config-btn:hover { background: rgba(255,255,255,0.16); }
+    html.dark .empty-state strong { color: var(--ink); }
+    html.dark #view-mapa, html.dark #mapa-container { filter: brightness(0.85) contrast(1.1); }
+  </style>
+</head>
+<body class="vista-llista">
+
+  <!-- ─── SPLASH ─────────────────────────────── -->
+  <div id="splash">
+    <div id="splash-inner">
+      <div id="splash-t">T</div>
+      <div id="splash-sub">Transitem.cat</div>
+    </div>
+    <div id="splash-hint">Toca per entrar</div>
+  </div>
+
+  <!-- ─── NAV ────────────────────────────────── -->
+  <nav>
+    <div class="brand">
+      <span class="brand-name">Transit<span class="em">em</span>.cat</span>
+      <span class="chip-revisio">En revisió</span>
+    </div>
+    <div class="nav-btns">
+      <button class="nav-btn" id="btn-ajudam" title="Ajuda'm a trobar recursos" aria-label="Ajuda'm">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        <span class="nav-label">Ajuda'm</span>
+      </button>
+      <button class="nav-btn icon" id="btn-vista" title="Canviar vista" aria-label="Canviar vista"></button>
+      <button class="nav-btn" id="btn-sobre" title="Sobre Transitem" aria-label="Sobre">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span class="nav-label">Sobre</span>
+      </button>
+      <button class="nav-btn icon" id="btn-config" title="Configuració" aria-label="Configuració">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ─── MAPA VIEW — sidebar amb location picker + mapa estàtic ─────────── -->
+  <div id="mapa-view">
+    <aside id="mapa-sidebar">
+      <div id="mapa-loc-picker">
+        <h3>On vius o busques?</h3>
+        <p class="hint">Marca la teva ubicació per veure recursos a prop. El mapa ampliarà al radi que triïs.</p>
+
+        <div class="mapa-loc-section">
+          <button class="mapa-loc-btn primary" id="mapa-btn-geo" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg>
+            La meva ubicació
+          </button>
+
+          <div class="mapa-search-inp">
+            <input type="search" id="mapa-search-input" placeholder="Municipi o codi postal…" autocomplete="off">
+            <div class="sugs" id="mapa-search-sugs" style="display:none"></div>
+          </div>
+
+          <div class="mapa-divider">o clica sobre el mapa</div>
+        </div>
+      </div>
+
+      <div id="mapa-loc-active" style="display:none">
+        <div class="mapa-current">
+          <span id="mapa-current-label">📍 La meva ubicació</span>
+          <button class="clear-btn" id="mapa-btn-clear-loc" type="button" aria-label="Netejar ubicació">×</button>
+        </div>
+
+        <div class="mapa-radius-row" style="margin-top:0.8rem">
+          <label>
+            Radi: <strong><span id="mapa-radius-val">25</span> km</strong>
+          </label>
+          <input type="range" id="mapa-radius-slider" min="0" max="6" step="1" value="2">
+          <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--ink-4)">
+            <span>5</span><span>10</span><span>25</span><span>50</span><span>100</span><span>150</span><span>200</span>
+          </div>
+        </div>
+
+        <div class="mapa-result-count" id="mapa-result-count"></div>
+        <div class="mapa-result-list" id="mapa-result-list"></div>
+      </div>
+    </aside>
+    <div id="mapa-container"></div>
+    <div class="mapa-legend" aria-hidden="true">
+      <div class="mapa-legend-title">Tipus</div>
+      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#0284C7"></span>Administració</div>
+      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#EC4899"></span>Associació</div>
+      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#7C3AED"></span>Col·lectiu</div>
+      <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#10B981"></span>Grup informal</div>
+    </div>
+  </div>
+
+  <!-- ─── LLISTA VIEW ────────────────────────── -->
+  <section class="llista-view" id="llista"></section>
+
+  <!-- ─── OVERLAY AJUDA'M ────────────────────── -->
+  <div id="overlay-ajudam" class="overlay">
+    <div class="modal" id="ajudam-modal">
+      <button class="modal-close" data-close="overlay-ajudam" aria-label="Tanca">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <h2>Ajuda'm a trobar recursos <span class="ajudam-count" id="ajudam-count">0</span></h2>
+      <div class="ajudam-lead-wrap">
+        <p class="ajudam-zero-warn" id="ajudam-zero-warn">Amb aquests criteris no hi ha cap recurs. Prova de canviar la selecció.</p>
+        <p class="ajudam-lead">Respon el que vulguis. Les preguntes sense resposta no filtren.</p>
+      </div>
+
+      <div class="ajudam-grup">
+        <h3 class="ajudam-q">On vius o busques recursos?
+          <span class="ajudam-check" data-check="territori" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+        </h3>
+        <div class="ajudam-opts" data-q="territori"></div>
+      </div>
+
+      <div class="ajudam-grup">
+        <h3 class="ajudam-q">Per a qui busques informació?
+          <span class="ajudam-check" data-check="public" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+        </h3>
+        <div class="ajudam-opts" data-q="public"></div>
+      </div>
+
+      <div class="ajudam-grup">
+        <h3 class="ajudam-q">Què busques principalment?
+          <span class="ajudam-check" data-check="servei" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+        </h3>
+        <div class="ajudam-opts" data-q="servei"></div>
+      </div>
+
+      <div class="ajudam-grup">
+        <h3 class="ajudam-q">Per quina via?
+          <span class="ajudam-check" data-check="tipus" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+        </h3>
+        <div class="ajudam-opts" data-q="tipus"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── OVERLAY FITXA ──────────────────────── -->
+  <div id="overlay-fitxa" class="overlay">
+    <div class="modal" id="fitxa-modal">
+      <button class="modal-close" data-close="overlay-fitxa" aria-label="Tanca">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <div id="fitxa-content"></div>
+    </div>
+  </div>
+
+  <!-- ─── OVERLAY SOBRE ──────────────────────── -->
+  <div id="overlay-sobre" class="overlay">
+    <div class="modal">
+      <button class="modal-close" data-close="overlay-sobre" aria-label="Tanca">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <div class="sobre-hero"><div class="sobre-hero-t">T</div></div>
+      <h2 style="text-align:center">Sobre Transitem</h2>
+      <!-- contingut renderitzat pel shared/js/about-modal.js des de app.config.about -->
+      <div class="sobre-cos"></div>
+      <div class="modal-footer"><small>Països Catalans · v0.2 · 2026</small></div>
+    </div>
+  </div>
+
+  <!-- ─── OVERLAY ONBOARDING ────────────────── -->
+  <div id="overlay-onboarding" class="overlay">
+    <div class="modal">
+      <div class="onboarding-head">
+        <span class="chip-revisio" style="display:inline-flex">En revisió</span>
+        <h2 class="onboarding-title">Benvingut/da a Transitem</h2>
+      </div>
+      <div id="onboarding-text">
+        <p>Transitem és un directori obert de recursos per a <strong>persones trans i no binàries</strong> als territoris de parla catalana: administració, associacions, col·lectius i grups de suport.</p>
+        <p>Navega pels grups (per tipus) o cerca per nom i municipi. Si no saps per on començar, obre <span class="hint-ajudam">Ajuda'm</span> i respon les preguntes — et filtrarem els recursos que encaixen millor amb tu.</p>
+        <p>El projecte és també per a <strong>famílies, parelles, amistats i entorn</strong>. Ningú està sol/a en aquest procés.</p>
+        <p style="font-size:0.86rem;color:var(--ink-3)">Aquesta eina està <strong>en fase de revisió</strong>. Les dades parteixen de fonts públiques i associatives, revisades manualment, però poden contenir errors o estar desactualitzades.</p>
+      </div>
+      <button id="btn-entesos">Entesos</button>
+    </div>
+  </div>
+
+  <!-- ─── OVERLAY CONFIG ─────────────────────── -->
+  <div id="overlay-config" class="overlay">
+    <div class="modal" style="width:min(480px,94vw)">
+      <button class="modal-close" data-close="overlay-config" aria-label="Tanca">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <h2>Configuració</h2>
+
+      <div class="config-seccio">
+        <div class="config-titol">Informació</div>
+        <div class="config-row">
+          <div class="config-row-label">Veure nota inicial
+            <div class="config-hint">La introducció que apareix la primera vegada.</div>
+          </div>
+          <button class="config-btn" id="btn-reveure-tutorial">Obrir</button>
+        </div>
+      </div>
+
+      <div class="config-seccio">
+        <div class="config-titol">Aparença</div>
+        <div class="config-row">
+          <span class="config-row-label">Mode nit</span>
+          <button id="toggle-dark" class="toggle" role="switch" aria-label="Mode nit"></button>
+        </div>
+        <div class="config-row" style="margin-top:0.4rem">
+          <div class="config-row-label">Vista
+            <div class="config-hint">Llistat agrupat per tipus o mapa geogràfic.</div>
+          </div>
+          <div class="config-vista-switch" id="config-vista-switch">
+            <button type="button" data-v="llista">Llista</button>
+            <button type="button" data-v="mapa">Mapa</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-seccio">
+        <div class="config-titol">Afegir a l'escriptori</div>
+        <div class="config-row">
+          <div class="config-row-label">
+            <span id="install-hint">Instal·la l'app per accedir-hi directament des del teu dispositiu.</span>
+          </div>
+          <button class="config-btn primary" id="btn-install" style="display:none">Instal·lar</button>
+        </div>
+      </div>
+
+      <div class="config-seccio">
+        <div class="config-titol">Dades guardades</div>
+        <div class="config-row">
+          <div class="config-row-label">Netejar cache local
+            <div class="config-hint">Recupera espai o força una càrrega fresca.</div>
+          </div>
+          <button class="config-btn" id="btn-clear-cache">Netejar</button>
+        </div>
+      </div>
+
+      <div class="modal-footer"><small>Transitem.cat · v0.3 · 2026</small></div>
+    </div>
+  </div>
+
+  <!-- ─── DADES ─────────────────────────────── -->
+  <script src="recursos.js"></script>
+
+  <!-- ─── APP ───────────────────────────────── -->
+  <script>
+  'use strict';
+  (function(){
+
+    const $ = id => document.getElementById(id);
+    const byId = $;
+    const escHtml = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const escRx   = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    function hl(text, q) {
+      const safe = escHtml(text || '');
+      if (!q || q.length < 2) return safe;
+      try {
+        const re = new RegExp('(' + escRx(q) + ')', 'gi');
+        return safe.replace(re, '<mark class="hl">$1</mark>');
+      } catch (_) { return safe; }
+    }
+
+    // ─── Estat ────────────────────────────────
+    let activeTipus = null;      // string | null
+    let activeTerritori = null;  // string | null
+    let activePublic = null;     // string | null
+    let activeServei = null;     // string | null
+    let searchQuery = '';
+
+    // ─── Icons vista ──────────────────────────
+    const ICON_VIEW_MAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`;
+    const ICON_VIEW_LIST = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
+
+    // ─── Vista ────────────────────────────────
+    const VISTA_KEY = 'transitem-vista';
+    function getVista() { return localStorage.getItem(VISTA_KEY) || 'llista'; }
+    function setVista(v) {
+      localStorage.setItem(VISTA_KEY, v);
+      document.body.classList.toggle('vista-mapa', v === 'mapa');
+      document.body.classList.toggle('vista-llista', v === 'llista');
+      const btn = byId('btn-vista');
+      if (btn) {
+        btn.innerHTML = v === 'mapa' ? ICON_VIEW_LIST : ICON_VIEW_MAP;
+        btn.setAttribute('title', v === 'mapa' ? 'Veure com a llista' : 'Veure com a mapa');
+      }
+      if (v === 'mapa') initMap();
+    }
+
+    // ─── Splash → shared/js/splash.js ──────────
+    // SharedSplash s'auto-inicialitza (click + auto-dismiss + skip-flag).
+    // Per hookar lògica al dismiss, escoltar event 'splash:dismiss'.
+
+    // ─── Helpers fitxa ────────────────────────
+    function inicial(nom) {
+      const STOP = new Set(['de','del','dels','la','el','els','les','i','a','al','als','en','per','amb','d','l']);
+      const base = (nom || '').replace(/\([^)]*\)/g, '').split(/\s[—–]\s/)[0].trim();
+      const words = base.split(/\s+/).filter(w => w && !STOP.has(w.toLowerCase().replace(/['']/g,'')));
+      if (words.length === 1 && /^[A-ZÀ-Ü0-9]{2,5}$/.test(words[0])) return words[0];
+      return (words.map(w => w.charAt(0).toUpperCase()).join('').slice(0, 4) || (nom || '?').charAt(0).toUpperCase());
+    }
+
+    function entMatchesQuery(r, q) {
+      if (!q || q.length < 2) return true;
+      const lc = q.toLowerCase();
+      return [r.nom, r.ambit, r.descripcio_breu, r.municipi, r.comarca, (r.ofereix||[]).join(' '), (r.quan_contactar||[]).join(' ')]
+        .some(f => (f || '').toLowerCase().replace(/\n/g,' ').includes(lc));
+    }
+
+    function entMatchesFilters(r) {
+      if (activeTipus && r.tipus !== activeTipus) return false;
+      if (activeTerritori && r.territori !== activeTerritori) return false;
+      if (activePublic && !(r.per_a_qui || []).includes(activePublic) && !(r.per_a_qui || []).includes('tots')) return false;
+      if (activeServei && !(r.serveis || []).includes(activeServei)) return false;
+      return true;
+    }
+
+    // ─── Llista render ────────────────────────
+    function renderLlista() {
+      // Guarda si el cercador tenia el focus i la posició del cursor, per restaurar-ho
+      // després del re-render (evita que cada tecla faci perdre el focus).
+      const activeEl = document.activeElement;
+      const wasSearchFocused = activeEl && activeEl.id === 'llista-search-input';
+      const caretPos = wasSearchFocused ? activeEl.selectionStart : null;
+
+      const host = byId('llista');
+      const INTRO = `
+        <header class="llista-intro">
+          <h1>Xarxa de suport trans, <span class="em-b">a prop</span> <span class="em-p">teu</span>.</h1>
+          <p>Directori d'<strong>administració, associacions, col·lectius i grups de suport</strong> per a persones trans i no binàries als nostres territoris. Informació per començar, investigar o acompanyar.</p>
+          <p>Toca una entitat per veure què fa, a qui s'adreça i les dades de contacte. Si no saps per on començar, obre <span class="hint-ajudam">Ajuda'm</span> i respon les preguntes.</p>
+          <p>També pots activar la <span class="hint-map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg> vista mapa</span> des del botó de la barra per veure els recursos geogràficament.</p>
+        </header>
+      `;
+      host.innerHTML = INTRO;
+      const rightCol = document.createElement('div');
+      rightCol.className = 'llista-rightcol';
+
+      const q = searchQuery.trim();
+      const activeSearch = q.length >= 2;
+      const anyFilterActive = activeTipus !== null || activeTerritori !== null || activePublic !== null || activeServei !== null;
+
+      // Compta el total que passa filtres, per al contador
+      const totalFiltered = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+
+      const title = document.createElement('h2');
+      title.className = 'llista-sec-title';
+      title.innerHTML = `Recursos <span class="llista-count" id="llista-count">${totalFiltered}<svg class="x-clear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>`;
+      rightCol.appendChild(title);
+
+      const searchBar = document.createElement('div');
+      searchBar.className = 'llista-search';
+      searchBar.innerHTML = `
+        <svg class="llista-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="llista-search-input" placeholder="Cerca recurs, municipi, paraula clau…" autocomplete="off" value="${escHtml(searchQuery)}">
+      `;
+      rightCol.appendChild(searchBar);
+
+      let totalVisible = 0;
+      Object.entries(TIPUS_META).forEach(([key, meta]) => {
+        const llista = RECURSOS.filter(r => r.tipus === key && entMatchesFilters(r) && entMatchesQuery(r, q));
+        if (!llista.length) return;
+        totalVisible += llista.length;
+        const grup = document.createElement('details');
+        grup.className = 'category-group';
+        grup.style.setProperty('--grupcolor', meta.color);
+        grup.open = anyFilterActive || activeSearch;
+        grup.innerHTML = `
+          <summary>
+            <div class="category-group-row">
+              <span class="category-group-head">
+                <span class="dot"></span>
+                <span>${meta.nom}</span>
+              </span>
+              <span class="category-group-count">${llista.length} ${llista.length === 1 ? 'recurs' : 'recursos'}</span>
+            </div>
+            ${meta.descripcio ? `<div class="category-group-desc">${meta.descripcio}</div>` : ''}
+          </summary>
+        `;
+        llista.forEach(r => {
+          const it = document.createElement('div');
+          const estatClass = r.estat === 'tancat' ? 'estat-tancat' : (r.estat === 'no_actiu' ? 'estat-no_actiu' : '');
+          it.className = 'entitat-item ' + estatClass;
+          it.style.setProperty('--tipcolor', meta.color);
+          const sRaw = r.sigles || inicial(r.nom);
+          const s = sRaw.length > 5 ? sRaw.slice(0, 4) : sRaw;
+          const loc = r.municipi ? (r.municipi + (r.comarca ? ' · ' + r.comarca : '')) : 'Online / estatal';
+          it.innerHTML = `
+            <div class="entitat-ico ico-len-${Math.min(s.length, 5)}">${escHtml(s)}</div>
+            <div class="entitat-info">
+              <div class="entitat-nom">${hl(r.nom, q)}</div>
+              <div class="entitat-ambit">${hl(r.ambit, q)}</div>
+              <div class="entitat-desc">${hl(r.descripcio_breu, q)}</div>
+              <div class="entitat-loc">📍 ${hl(loc, q)}</div>
+            </div>
+          `;
+          it.addEventListener('click', () => openFitxa(r.id));
+          grup.appendChild(it);
+        });
+        const plegar = document.createElement('button');
+        plegar.className = 'llista-grup-plegar';
+        plegar.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg> Plegar`;
+        plegar.addEventListener('click', e => {
+          e.preventDefault(); e.stopPropagation();
+          grup.open = false;
+          grup.querySelector('summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        grup.appendChild(plegar);
+        rightCol.appendChild(grup);
+      });
+      if (totalVisible === 0) {
+        const msg = activeSearch
+          ? `<div class="llista-empty"><strong>Cap resultat</strong> per <em>"${escHtml(q)}"</em>.<br>Prova amb una altra paraula o neteja la cerca.</div>`
+          : `<div class="llista-empty"><strong>Cap recurs coincideix</strong> amb els filtres aplicats.<br>Prova amb <em>Ajuda'm</em> per triar altres criteris.</div>`;
+        rightCol.insertAdjacentHTML('beforeend', msg);
+      }
+      host.appendChild(rightCol);
+
+      const FOOTER = `
+        <footer class="llista-footer">
+          <strong>Eina en fase de revisió.</strong> Si detectes algun error o vols fer una aportació, <button type="button" data-legal-open="contact" style="background:none;border:0;padding:0;font:inherit;color:var(--pink-ink);cursor:pointer;text-decoration:underline">escriu-nos</button>.
+          <div class="legal-links">
+            <button type="button" data-legal-open="legal">Avís legal</button><span>·</span><button type="button" data-legal-open="privacy">Política de privacitat</button><span>·</span><button type="button" data-legal-open="contact">Contacte</button>
+          </div>
+        </footer>
+      `;
+      host.insertAdjacentHTML('beforeend', FOOTER);
+
+      // Cercador
+      const input = byId('llista-search-input');
+      if (input) {
+        let t;
+        input.addEventListener('input', e => {
+          clearTimeout(t);
+          const v = e.target.value;
+          t = setTimeout(() => { searchQuery = v; renderAll(); updateAjudamCount(); }, 120);
+        });
+        // Restaura focus i caret si l'usuari estava escrivint (evita que es perdi
+        // el focus a cada re-render del llistat).
+        if (wasSearchFocused) {
+          input.focus();
+          const pos = caretPos != null ? caretPos : input.value.length;
+          try { input.setSelectionRange(pos, pos); } catch (_) {}
+        }
+      }
+
+      // Count clickable per netejar filtres
+      const countEl = byId('llista-count');
+      if (countEl) {
+        const anyFilter = anyFilterActive;
+        countEl.classList.toggle('clearable', anyFilter);
+        countEl.title = anyFilter ? 'Clica per netejar els filtres' : '';
+        if (anyFilter) {
+          countEl.addEventListener('click', () => {
+            activeTipus = null;
+            activeTerritori = null;
+            activePublic = null;
+            activeServei = null;
+            renderAll();
+            syncAjudamUI();
+            updateAjudamButton();
+          });
+        }
+      }
+    }
+
+    // Funció global: actualitza vista actual (llista o mapa)
+    function renderAll() {
+      renderLlista();
+      if (map && document.body.classList.contains('vista-mapa')) {
+        renderChoropleth();
+        if (userLoc) updateResultList();
+      }
+    }
+
+    // ─── Fitxa (modal detall) ─────────────────
+    const overlayFitxa = byId('overlay-fitxa');
+    function openFitxa(id) {
+      const r = RECURSOS.find(x => x.id === id);
+      if (!r) return;
+      const meta = TIPUS_META[r.tipus];
+      const tipcolor = meta.color;
+      const content = byId('fitxa-content');
+
+      const contact = [];
+      if (r.adreca)   contact.push(['Adreça',   escHtml(r.adreca) + (r.municipi ? ', ' + escHtml(r.municipi) : '')]);
+      else if (r.municipi) contact.push(['Municipi', escHtml(r.municipi) + (r.comarca ? ' (' + escHtml(r.comarca) + ')' : '')]);
+      if (r.telefon)  contact.push(['Telèfon',  escHtml(r.telefon)]);
+      if (r.email)    contact.push(['Email',    `<a href="mailto:${escHtml(r.email)}">${escHtml(r.email)}</a>`]);
+      if (r.web)      contact.push(['Web',      `<a href="${escHtml(r.web)}" target="_blank" rel="noopener">${escHtml(r.web)}</a>`]);
+      if (r.instagram) contact.push(['Instagram', `<a href="https://instagram.com/${escHtml((r.instagram||'').replace('@',''))}" target="_blank" rel="noopener">${escHtml(r.instagram)}</a>`]);
+      if (r.facebook) contact.push(['Facebook', `<a href="${escHtml(r.facebook)}" target="_blank" rel="noopener">Enllaç</a>`]);
+
+      const teri = TERRITORI_META[r.territori || 'cat'];
+
+      let html = `
+        <div class="fitxa-head" style="--tipcolor:${tipcolor}">
+          <div class="fitxa-tipus">${meta.nom} · ${teri ? teri.nom : ''}</div>
+          <div class="fitxa-nom">${escHtml(r.nom)}</div>
+          <div class="fitxa-ambit">${escHtml(r.ambit || '')}</div>
+        </div>
+        <div class="fitxa-body" style="--tipcolor:${tipcolor}">
+      `;
+
+      if (r.estat === 'tancat' || r.estat === 'no_actiu') {
+        html += `<div class="fitxa-notes"><strong>${r.estat === 'tancat' ? 'Tancat temporalment' : 'No actiu'}</strong>${r.notes ? ' · ' + escHtml(r.notes) : ''}</div>`;
+      }
+
+      if (r.per_a_que) html += `<div class="fitxa-section"><h4>Per a què serveix</h4><p>${escHtml(r.per_a_que)}</p></div>`;
+      if (r.ofereix && r.ofereix.length) html += `<div class="fitxa-section"><h4>Què ofereix</h4><ul>${r.ofereix.map(o => `<li>${escHtml(o)}</li>`).join('')}</ul></div>`;
+      if (r.quan_contactar && r.quan_contactar.length) html += `<div class="fitxa-section"><h4>Quan contactar-hi</h4><ul>${r.quan_contactar.map(o => `<li>${escHtml(o)}</li>`).join('')}</ul></div>`;
+
+      if (r.per_a_qui && r.per_a_qui.length) {
+        const tags = r.per_a_qui.map(p => `<span class="fitxa-tag">${escHtml((PUBLICS_META[p] || {nom:p}).nom)}</span>`).join('');
+        html += `<div class="fitxa-section"><h4>A qui s'adreça</h4><div class="fitxa-tags">${tags}</div></div>`;
+      }
+      if (r.serveis && r.serveis.length) {
+        const tags = r.serveis.map(s => `<span class="fitxa-tag">${escHtml((SERVEIS_META[s] || {nom:s}).nom)}</span>`).join('');
+        html += `<div class="fitxa-section"><h4>Serveis</h4><div class="fitxa-tags">${tags}</div></div>`;
+      }
+
+      if (contact.length) {
+        const rows = contact.map(([l,v]) => `<div class="fitxa-contact-row"><span class="fitxa-contact-label">${l}</span><span>${v}</span></div>`).join('');
+        html += `<div class="fitxa-section"><h4>Contacte</h4><div class="fitxa-contact">${rows}</div></div>`;
+      }
+      if (r.notes && r.estat === 'actiu') {
+        html += `<div class="fitxa-notes">${escHtml(r.notes)}</div>`;
+      }
+
+      const cta = r.web || (r.email ? 'mailto:' + r.email : null);
+      if (cta) {
+        html += `<a class="fitxa-cta" href="${escHtml(cta)}" target="_blank" rel="noopener">${r.web ? 'Obrir web / contacte directe' : 'Enviar email'} →</a>`;
+      }
+      // Botó Compartir: copia URL amb hash al portapapers
+      html += `<button type="button" class="fitxa-share" data-id="${r.id}" style="width:100%;padding:11px 18px;margin-top:0.6rem;border:1px solid var(--border-2);border-radius:100px;background:var(--bg);color:var(--ink-2);font:inherit;font-size:0.86rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartir aquest recurs
+      </button>`;
+      html += `</div>`;
+      content.innerHTML = html;
+      // Wire del botó compartir (després d'injectar HTML)
+      const shareBtn = content.querySelector('.fitxa-share');
+      if (shareBtn) shareBtn.addEventListener('click', async () => {
+        const url = location.origin + location.pathname + '#' + r.id;
+        const text = `${r.nom} — Transitem.cat`;
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: r.nom, text, url });
+          } else {
+            await navigator.clipboard.writeText(url);
+            shareBtn.textContent = '✓ Enllaç copiat';
+            setTimeout(() => { shareBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir aquest recurs`; }, 2000);
+          }
+        } catch (_) { /* user canceled */ }
+      });
+      overlayFitxa.classList.add('open');
+      history.replaceState(null, '', '#' + r.id);
+    }
+
+    // ─── Ajuda'm ──────────────────────────────
+    const ajudamModal = byId('ajudam-modal');
+    const AJUDAM_STATE = { territori: null, public: null, servei: null, tipus: null };
+
+    // Opcions Ajuda'm (es deriven dels METAs)
+    const AJUDAM_OPTS = {
+      territori: Object.entries(TERRITORI_META)
+        .filter(([k]) => RECURSOS.some(r => r.territori === k))
+        .map(([k, m]) => ({ val: k, label: m.nom })),
+      public: [
+        { val: 'jo',           label: 'Per a mi', filter: null },
+        { val: 'adolescents',  label: 'Menor de 18', filter: 'adolescents' },
+        { val: 'joves',        label: 'Jove (18–30)', filter: 'joves' },
+        { val: 'adults',       label: 'Adult/a', filter: 'adults' },
+        { val: 'families',     label: 'Fill/a o familiar', filter: 'families' },
+        { val: 'parelles',     label: 'La meva parella', filter: 'parelles' },
+        { val: 'amics',        label: 'Amistat / entorn', filter: 'amics' },
+        { val: 'migrants',     label: 'Migrant / refugiat/da', filter: 'migrants' },
+        { val: 'no_binaries',  label: 'No binària', filter: 'no_binaries' },
+        { val: 'dones_trans',  label: 'Dona trans', filter: 'dones_trans' },
+        { val: 'homes_trans',  label: 'Home trans', filter: 'homes_trans' },
+        { val: 'crossdressers',label: 'Crossdresser', filter: 'crossdressers' },
+      ],
+      servei: [
+        { val: 'acompanyament', label: 'Acompanyament i companyia', filter: 'acompanyament' },
+        { val: 'sanitari',      label: 'Atenció sanitària', filter: 'sanitari' },
+        { val: 'salut_mental',  label: 'Salut mental / sexual', filter: 'salut_mental' },
+        { val: 'legal',         label: 'Suport legal', filter: 'legal' },
+        { val: 'denuncia',      label: 'Denúncia discriminació', filter: 'denuncia' },
+        { val: 'laboral',       label: 'Inserció laboral', filter: 'laboral' },
+        { val: 'lleure',        label: 'Lleure / colònies', filter: 'lleure' },
+        { val: 'socialitzacio', label: 'Socialització', filter: 'socialitzacio' },
+        { val: 'activisme',     label: 'Activisme / visibilitat', filter: 'activisme' },
+        { val: 'formacio',      label: 'Formació / xerrades', filter: 'formacio' },
+      ],
+      tipus: Object.entries(TIPUS_META).map(([k, m]) => ({ val: k, label: m.nom })),
+    };
+
+    function renderAjudamOpts() {
+      Object.keys(AJUDAM_OPTS).forEach(q => {
+        const container = ajudamModal.querySelector(`.ajudam-opts[data-q="${q}"]`);
+        if (!container) return;
+        container.innerHTML = '';
+        AJUDAM_OPTS[q].forEach(opt => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'ajudam-opt';
+          b.dataset.val = opt.val;
+          b.textContent = opt.label;
+          b.addEventListener('click', () => {
+            if (AJUDAM_STATE[q] === opt.val) {
+              AJUDAM_STATE[q] = null;
+              b.classList.remove('selected');
+            } else {
+              AJUDAM_STATE[q] = opt.val;
+              container.querySelectorAll('.ajudam-opt').forEach(x => x.classList.remove('selected'));
+              b.classList.add('selected');
+            }
+            applyAjudamFilters();
+          });
+          container.appendChild(b);
+        });
+      });
+    }
+
+    function applyAjudamFilters() {
+      activeTerritori = AJUDAM_STATE.territori || null;
+      activePublic = (AJUDAM_OPTS.public.find(o => o.val === AJUDAM_STATE.public) || {}).filter || null;
+      activeServei = (AJUDAM_OPTS.servei.find(o => o.val === AJUDAM_STATE.servei) || {}).filter || null;
+      activeTipus = AJUDAM_STATE.tipus || null;
+      renderAll();
+      updateAjudamButton();
+      updateAjudamCount();
+      syncAjudamChecks();
+      // Si hi ha territori seleccionat, recentra el mapa
+      if (map && AJUDAM_STATE.territori && TERRITORI_META[AJUDAM_STATE.territori]) {
+        const tm = TERRITORI_META[AJUDAM_STATE.territori];
+        map.setView(tm.centre, tm.zoom);
+      }
+    }
+
+    function syncAjudamChecks() {
+      ['territori','public','servei','tipus'].forEach(k => {
+        const check = ajudamModal.querySelector(`.ajudam-check[data-check="${k}"]`);
+        if (check) check.classList.toggle('visible', !!AJUDAM_STATE[k]);
+      });
+    }
+
+    function syncAjudamUI() {
+      // Neteja seleccions visuals (quan es netegen filtres externament)
+      ajudamModal.querySelectorAll('.ajudam-opt.selected').forEach(b => b.classList.remove('selected'));
+      AJUDAM_STATE.territori = AJUDAM_STATE.public = AJUDAM_STATE.servei = AJUDAM_STATE.tipus = null;
+      syncAjudamChecks();
+      updateAjudamCount();
+    }
+
+    function updateAjudamCount() {
+      const q = searchQuery.trim();
+      const n = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+      const el = byId('ajudam-count');
+      el.textContent = n;
+      el.classList.toggle('zero', n === 0);
+      byId('ajudam-zero-warn').classList.toggle('visible', n === 0);
+    }
+
+    function updateAjudamButton() {
+      const any = activeTipus || activeTerritori || activePublic || activeServei;
+      byId('btn-ajudam').classList.toggle('active-filter', !!any);
+    }
+
+    byId('btn-ajudam').addEventListener('click', () => byId('overlay-ajudam').classList.add('open'));
+    byId('btn-sobre').addEventListener('click', () => byId('overlay-sobre').classList.add('open'));
+    byId('btn-config').addEventListener('click', () => byId('overlay-config').classList.add('open'));
+
+    // Tancament d'overlays gestionat per shared/js/overlay.js
+    // (data-close + ESC + backdrop click). Hook específic per netejar l'URL
+    // hash quan es tanca la fitxa:
+    document.addEventListener('overlay:close', e => {
+      if (e.detail.id === 'overlay-fitxa' && location.hash) {
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+    });
+
+    // ─── Toggle vista ─────────────────────────
+    byId('btn-vista').addEventListener('click', () => {
+      setVista(getVista() === 'mapa' ? 'llista' : 'mapa');
+    });
+    document.querySelectorAll('[data-vista]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setVista(btn.dataset.vista);
+        byId('overlay-config').classList.remove('open');
+      });
+    });
+
+    // ─── Mapa choropleth estil Batllies ─────────────
+    // Fonts:
+    //  - TopoJSON municipis (data/cat-municipis.json, 960 KB, 1894 municipis)
+    //  - Encara no tenim polígons per altres territoris (val/bal/cn/franja/and/alguer/carxe),
+    //    així que per aquests recursos afegim markers normals a sobre.
+    let map = null;
+    let choroplethLayer = null;
+    let esMunisLayer = null;       // municipis Balears + PV + Franja + Carxe
+    let provLayer = null;
+    let contextLayer = null;       // Context geogràfic (Sardenya + Còrsega)
+    let territoryLabels = [];      // Etiquetes flotants amb el nom dels territoris
+    let extraMarkers = [];
+    let simpleLayers = {};         // alguer → L.GeoJSON
+    let municipalLayers = {};      // cn/and → L.GeoJSON (choropleth municipal)
+    let municipisFeatures = null;  // cache del GeoJSON convertit
+    let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
+    let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
+    let contextFeatures = null;    // Sardenya + Còrsega (context geogràfic, no clic)
+    let simpleTerritories = {};    // terri → FeatureCollection
+    let municipalTerritories = {}; // terri → FeatureCollection (CN communes, And parròquies)
+
+    // Províncies que es mostren a nivell municipal (codi INE 2 dígits)
+    const MUNI_PROV_CODES = new Set(['07', '46', '03', '12']); // Balears, Val, Alacant, Castelló
+    // Mapping codi INE província → territori (per fallback color choropleth)
+    const PROV_CODE_TO_TERRI = {
+      '07': 'bal',
+      '46': 'val', '03': 'val', '12': 'val',
+    };
+
+    // Municipis catalanoparlants individuals (Franja + Carxe)
+    // Franja: Annex II de l'Avantprojecte de Llei de Llengües d'Aragó (2001, reprès a la Llei 10/2009).
+    // La Llei 3/2013 NO delimita oficialment, delega a un reglament posterior mai completat.
+    // Codis verificats per l'agent contra IDEAragon, INE i Wikidata (2026-04-24). 62 municipis.
+    const FRANJA_MUNI_CODES = new Set([
+      // Ribagorça (Osca) — 17 municipis
+      '22035', // Arén (Areny de Noguera)
+      '22053', // Benabarre (Benavarri)
+      '22067', // Bonansa
+      '22080', // Capella
+      '22087', // Castigaleu
+      '22105', // Estopiñán del Castillo (Estopanyà)
+      '22129', // Isábena (Isàvena)
+      '22142', // Lascuarre (Lasquarri)
+      '22143', // Laspaúles (Les Paüls)
+      '22155', // Monesma y Cajigar (Monesma i Queixigar)
+      '22157', // Montanuy (Montanui)
+      '22188', // Puente de Montañana (el Pont de Montanyana)
+      '22223', // Sopeira
+      '22229', // Tolva (Tolba)
+      '22233', // Torre la Ribera
+      '22246', // Beranuy (Beranui)
+      '22247', // Viacamp y Litera (Viacamp i Lliterà)
+
+      // Llitera (Osca) — 12 municipis
+      '22009', // Albelda
+      '22016', // Alcampell (el Campell)
+      '22025', // Altorricón (el Torricó)
+      '22040', // Azanuy-Alins (Sanui i Alins)
+      '22043', // Baélls
+      '22045', // Baldellou (Valldellou)
+      '22075', // Camporrélls (Camporrells)
+      '22089', // Castillonroy (Castellonroi)
+      '22175', // Peralta de Calasanz (Peralta i Calassanç)
+      '22205', // San Esteban de Litera (Sant Esteve de Llitera)
+      '22225', // Tamarite de Litera (Tamarit de Llitera)
+      '22909', // Vencillón (Vensilló)
+
+      // Baix Cinca (Osca) — 4 municipis
+      '22112', // Fraga
+      '22234', // Torrente de Cinca (Torrent de Cinca)
+      '22245', // Velilla de Cinca (Vilella de Cinca)
+      '22254', // Zaidín (Saidí)
+
+      // Baix Aragó-Casp (Saragossa) — 5 municipis
+      '50102', // Fabara (Favara de Matarranya)
+      '50105', // Fayón (Faió)
+      '50152', // Maella
+      '50165', // Mequinenza (Mequinensa)
+      '50189', // Nonaspe (Nonasp)
+
+      // Baix Aragó (Terol) — 7 municipis catalanoparlants
+      '44004', // Aguaviva (Aiguaviva de Bergantes)
+      '44038', // Belmonte de San José (Bellmunt de Mesquí)
+      '44061', // La Cañada de Verich (la Canyada de Beric)
+      '44077', // La Cerollera (la Sorollera)
+      '44080', // La Codoñera (la Codonyera)
+      '44118', // La Ginebrosa
+      '44230', // Torrevelilla (la Torre de Vilella)
+
+      // Matarranya (Terol) — 17 municipis (manca Torre de Arcas, codi INE pendent de verificar)
+      '44027', // Arens de Lledó (Arenys de Lledó)
+      '44037', // Beceite (Beseit)
+      '44049', // Calaceite (Calaceit)
+      '44086', // Cretas (Cretes/Queretes)
+      '44105', // Fórnoles (Fórnols)
+      '44108', // La Fresneda (la Freixneda)
+      '44114', // Fuentespalda (Fondespatla)
+      '44141', // Lledó (Lledó d'Algars)
+      '44147', // Mazaleón (Massalió)
+      '44154', // Monroyo (Mont-roig de Tastavins)
+      '44179', // Peñarroya de Tastavins (Pena-roja)
+      '44187', // La Portellada
+      '44194', // Ráfales
+      '44223', // Torre de Arcas (Torredarques) — NO confondre amb 44224 Torre de las Arcas (castellanoparlant)
+      '44225', // Torre del Compte (la Torre del Comte)
+      '44245', // Valdeltormo (la Vall de Tormo)
+      '44246', // Valderrobres (Vall-de-roures)
+      '44247', // Valjunquera (Valljunquera)
+    ]);
+    // Carxe: 3 municipis murcians amb territori catalanoparlant
+    const CARXE_MUNI_CODES = new Set([
+      '30043', // Iecla / Yecla
+      '30022', // Jumella / Jumilla
+      '30001', // Favanella / Abanilla
+    ]);
+
+    // Territoris 'simples' (1 sol polígon). Per ara només l'Alguer; CN i Andorra passen a MUNICIPAL_TERRITORIES.
+    const SIMPLE_TERRITORIES = {
+      alguer: { file: 'data/alguer.geojson',  label: 'L\'Alguer',  sub: 'Sardenya (província de Sàsser)' },
+    };
+
+    // Territoris amb detall municipal via FeatureCollection propi (no es-atlas)
+    const MUNICIPAL_TERRITORIES = {
+      cn:  { file: 'data/cn-communes.geojson',     nameField: 'nom',  territori: 'cn',  label: 'Catalunya Nord' },
+      and: { file: 'data/andorra-parroquies.geojson', nameField: 'name', territori: 'and', label: 'Andorra' },
+    };
+
+    // Mapping província espanyola → territori de Transitem
+    const PROV_TERRITORI = {
+      'Illes Balears':        'bal',
+      'València/Valencia':    'val',
+      'Alacant/Alicante':     'val',
+      'Castelló/Castellón':   'val',
+      'Huesca':               'franja',
+      'Teruel':               'franja',
+      'Zaragoza':             'franja',
+      'Murcia':               'carxe',
+    };
+    // Color pastel per territori (per al fill de la capa de províncies/simples)
+    const TERRITORI_COLOR_PASTEL = {
+      bal:    '#FEF3C7',
+      val:    '#DBEAFE',
+      franja: '#E0F2FE',
+      carxe:  '#FCE7F3',
+      cn:     '#FED7AA',
+      and:    '#DDD6FE',
+      alguer: '#D1FAE5',
+    };
+
+    function normMuni(s) {
+      return String(s || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/['’`´]/g, '')
+        // Si té barra (ex: "Alacant/Alicante"), agafa la primera forma. NO split per "-"
+        // perquè trencaria noms compostos (Font-Romeu-Odeillo-Via, Sant-Cyprien...).
+        .split(/\//)[0].trim()
+        .replace(/^(l |la |les |el |els )/, '')
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function colorForCount(n) {
+      if (n === 0) return '#F3F4F6';
+      if (n === 1) return '#FCE7F3';
+      if (n === 2) return '#FBCFE8';
+      if (n <= 4) return '#F9A8D4';
+      if (n <= 8) return '#F472B6';
+      return '#EC4899';
+    }
+
+    // ─── Ubicació de l'usuari + radi ──────────
+    const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 150, 200];
+    let userLoc = null;       // { lat, lon, label }
+    let radiusIdx = 2;        // índex a RADIUS_OPTIONS (25 km per defecte)
+    let userMarker = null;
+    let userCircle = null;
+
+    function getRadiusKm() { return RADIUS_OPTIONS[radiusIdx]; }
+
+    function setMapInteractive(enabled) {
+      if (!map) return;
+      const m = map;
+      if (enabled) {
+        m.dragging.enable(); m.scrollWheelZoom.enable(); m.doubleClickZoom.enable();
+        m.boxZoom.enable(); m.keyboard.enable(); m.touchZoom.enable();
+        if (m.tap) m.tap.enable();
+      } else {
+        m.dragging.disable(); m.scrollWheelZoom.disable(); m.doubleClickZoom.disable();
+        m.boxZoom.disable(); m.keyboard.disable(); m.touchZoom.disable();
+        if (m.tap) m.tap.disable();
+      }
+    }
+
+    function initMap() {
+      if (typeof L === 'undefined') { setTimeout(initMap, 200); return; }
+      if (map) { renderChoropleth(); return; }
+      // Mapa estàtic per defecte: desactivat pan/zoom fins que l'usuari marqui ubicació
+      map = L.map('mapa-container', {
+        scrollWheelZoom: false,
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        touchZoom: false,
+        tap: false,
+      }).setView([40.9, 1.7], 6);
+      L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('ICGC · INE · INSEE').addTo(map);
+      map.getContainer().style.background = '#F8FAFC';
+      const simpleLoads = Object.keys(SIMPLE_TERRITORIES).map(k => loadSimpleTerritory(k));
+      const municipalLoads = Object.keys(MUNICIPAL_TERRITORIES).map(k => loadMunicipalTerritory(k));
+      Promise.all([loadMunicipis(), loadProvincies(), loadContext(), ...simpleLoads, ...municipalLoads]).then(() => {
+        renderChoropleth();
+        fitStaticView();
+        addTerritoryLabels();
+      });
+      map.on('zoomend', toggleTerritoryLabels);
+    }
+
+    // Etiquetes flotants amb el nom dels territoris (apareixen en zoom baix)
+    const TERRI_LABEL_POS = {
+      cat:    { centre: [41.85, 1.65],  label: 'Catalunya' },
+      val:    { centre: [39.30, -0.55], label: 'País Valencià' },
+      bal:    { centre: [39.65, 2.95],  label: 'Illes Balears' },
+      franja: { centre: [41.45, 0.30],  label: 'Franja' },
+      cn:     { centre: [42.65, 2.55],  label: 'Catalunya Nord' },
+      and:    { centre: [42.55, 1.55],  label: 'Andorra' },
+      alguer: { centre: [40.56, 8.32],  label: "L'Alguer" },
+      carxe:  { centre: [38.50, -1.20], label: 'Carxe' },
+    };
+    function addTerritoryLabels() {
+      if (!map) return;
+      territoryLabels.forEach(m => m.remove());
+      territoryLabels = [];
+      Object.values(TERRI_LABEL_POS).forEach(({ centre, label }) => {
+        const icon = L.divIcon({
+          className: 'mapa-terri-label',
+          html: `<span>${label}</span>`,
+          iconSize: [140, 22],
+          iconAnchor: [70, 11],
+        });
+        const m = L.marker(centre, { icon, interactive: false, keyboard: false }).addTo(map);
+        territoryLabels.push(m);
+      });
+      toggleTerritoryLabels();
+    }
+    function toggleTerritoryLabels() {
+      if (!map || !territoryLabels.length) return;
+      const show = map.getZoom() <= 7;
+      territoryLabels.forEach(m => {
+        const el = m.getElement();
+        if (el) el.style.display = show ? '' : 'none';
+      });
+    }
+
+    async function loadContext() {
+      if (contextFeatures) return contextFeatures;
+      try {
+        const res = await fetch('data/context-sardenya-corsega.geojson');
+        contextFeatures = await res.json();
+      } catch (e) {
+        console.warn('No s\'ha pogut carregar el context geogràfic:', e);
+        contextFeatures = { type: 'FeatureCollection', features: [] };
+      }
+      return contextFeatures;
+    }
+
+    async function loadMunicipalTerritory(terri) {
+      if (municipalTerritories[terri]) return municipalTerritories[terri];
+      const def = MUNICIPAL_TERRITORIES[terri];
+      if (!def) return null;
+      try {
+        const res = await fetch(def.file);
+        const geo = await res.json();
+        municipalTerritories[terri] = geo;
+      } catch (e) {
+        console.warn('No s\'ha pogut carregar ' + terri + ' (municipal):', e);
+        municipalTerritories[terri] = { type: 'FeatureCollection', features: [] };
+      }
+      return municipalTerritories[terri];
+    }
+
+    // Ajusta l'enquadrament per mostrar tots els territoris a la vista estàtica.
+    // Inclou tot el Mediterrani occidental: Múrcia (SW) → Catalunya Nord (NE) → l'Alguer (E).
+    function fitStaticView() {
+      if (!map) return;
+      const bounds = L.latLngBounds([
+        [38.0, -1.8], // SW: Múrcia
+        [43.0, 9.8],  // NE/E: Catalunya Nord + l'Alguer (Sardenya)
+      ]);
+      try {
+        map.fitBounds(bounds, { padding: [10, 10] });
+      } catch (e) {
+        map.setView([40.9, 1.7], 6);
+      }
+    }
+
+    async function loadMunicipis() {
+      if (municipisFeatures) return municipisFeatures;
+      if (typeof topojson === 'undefined') {
+        await new Promise(r => setTimeout(r, 200));
+        return loadMunicipis();
+      }
+      const res = await fetch('data/cat-municipis.json');
+      const topo = await res.json();
+      const obj = topo.objects[Object.keys(topo.objects)[0]];
+      municipisFeatures = topojson.feature(topo, obj);
+      return municipisFeatures;
+    }
+
+    async function loadSimpleTerritory(terri) {
+      if (simpleTerritories[terri]) return simpleTerritories[terri];
+      const def = SIMPLE_TERRITORIES[terri];
+      if (!def) return null;
+      try {
+        const res = await fetch(def.file);
+        const geo = await res.json();
+        simpleTerritories[terri] = geo.type === 'Feature'
+          ? { type: 'FeatureCollection', features: [geo] }
+          : geo;
+      } catch (e) {
+        console.warn('No s\'ha pogut carregar ' + terri + ':', e);
+        simpleTerritories[terri] = { type: 'FeatureCollection', features: [] };
+      }
+      return simpleTerritories[terri];
+    }
+
+    async function loadProvincies() {
+      if (provinciesFeatures) return provinciesFeatures;
+      if (typeof topojson === 'undefined') {
+        await new Promise(r => setTimeout(r, 200));
+        return loadProvincies();
+      }
+      try {
+        const res = await fetch('data/es-municipalities.json');
+        const topo = await res.json();
+        // Províncies de parla catalana no-CAT
+        const provGeo = topojson.feature(topo, topo.objects.provinces);
+        provGeo.features = provGeo.features.filter(f => PROV_TERRITORI[f.properties.name]);
+        provinciesFeatures = provGeo;
+        // Municipis amb choropleth detallat (Balears + PV + Franja + Carxe)
+        const muni = topojson.feature(topo, topo.objects.municipalities);
+        muni.features = muni.features.filter(f => {
+          const id = String(f.id);
+          return MUNI_PROV_CODES.has(id.slice(0, 2))
+            || FRANJA_MUNI_CODES.has(id)
+            || CARXE_MUNI_CODES.has(id);
+        });
+        // Afegeix `territori` a cada municipi (útil per estil diferenciat)
+        muni.features.forEach(f => {
+          const id = String(f.id);
+          const prov2 = id.slice(0, 2);
+          if (MUNI_PROV_CODES.has(prov2)) {
+            f.properties._territori = PROV_CODE_TO_TERRI[prov2];
+          } else if (FRANJA_MUNI_CODES.has(id)) {
+            f.properties._territori = 'franja';
+          } else if (CARXE_MUNI_CODES.has(id)) {
+            f.properties._territori = 'carxe';
+          }
+        });
+        esCatalanMunis = muni;
+        return provinciesFeatures;
+      } catch (e) {
+        console.warn('No s\'han pogut carregar les províncies:', e);
+        provinciesFeatures = { type: 'FeatureCollection', features: [] };
+        esCatalanMunis = { type: 'FeatureCollection', features: [] };
+        return provinciesFeatures;
+      }
+    }
+
+    function renderChoropleth() {
+      if (!map || !municipisFeatures) return;
+      if (choroplethLayer) { choroplethLayer.remove(); choroplethLayer = null; }
+      if (esMunisLayer) { esMunisLayer.remove(); esMunisLayer = null; }
+      if (provLayer) { provLayer.remove(); provLayer = null; }
+      if (contextLayer) { contextLayer.remove(); contextLayer = null; }
+      Object.values(simpleLayers).forEach(l => l.remove());
+      Object.values(municipalLayers).forEach(l => l.remove());
+      simpleLayers = {};
+      municipalLayers = {};
+      extraMarkers.forEach(m => m.remove()); extraMarkers = [];
+
+      // Capa de context (Sardenya + Còrsega): subtil i no interactiva
+      if (contextFeatures && contextFeatures.features.length) {
+        contextLayer = L.geoJSON(contextFeatures, {
+          interactive: false,
+          style: () => ({
+            color: '#cbd5e1',
+            weight: 0.6,
+            fillColor: '#e5e7eb',
+            fillOpacity: 0.55,
+          }),
+        }).addTo(map);
+        contextLayer.bringToBack();
+      }
+
+      const q = searchQuery.trim();
+      const filtered = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q));
+
+      // Aliases per a noms en altres idiomes (català ↔ francès/castellà)
+      const MUNI_ALIASES = {
+        // ─ Catalunya Nord (Pyr-Or i Fenolleda): català → francès oficial
+        'perpinya':                  'perpignan',
+        'elna':                      'elne',
+        'prada':                     'prades',
+        'cotlliure':                 'collioure',
+        'tuir':                      'thuir',
+        'banyuls de la marenda':     'banyuls sur mer',
+        'argelers de la marenda':    'argeles sur mer',
+        'sant cebria de rossello':   'saint cyprien',
+        'el volo':                   'le boulou',
+        'sant esteve del monestir':  'saint esteve',
+        'illa':                      'ille sur tet',
+        'millars':                   'millas',
+        'ribesaltes':                'rivesaltes',
+        'salses':                    'salses le chateau',
+        'portvendres':               'port vendres',
+        'cervera de la marenda':     'cerbere',
+        'torrelles de la salanca':   'torreilles',
+        'sant llorenc de la salanca':'saint laurent de la salanque',
+        'arles del tec':             'arles sur tech',
+        'prats de mollo':            'prats de mollo la preste',
+        'sant llorenc de cerdans':   'saint laurent de cerdans',
+        'morellas i les illes':      'maureillas las illas',
+        'vilafranca de conflent':    'villefranche de conflent',
+        'montlluis':                 'mont louis',
+        'vernet':                    'vernet les bains',
+        'sallagosa':                 'saillagouse',
+        'bolquera':                  'bolquere',
+        'font romeu':                'font romeu odeillo via',
+        'formiguera':                'formigueres',
+        'els angles':                'angles',
+        'matamala':                  'matemale',
+        'la llaguna':                'la llagonne',
+        'sornia':                    'sournia',
+        'sant pau de fenollet':      'saint paul de fenouillet',
+        'caudiers de fenolleda':     'caudies de fenouilledes',
+        'mao':                       'mao mahon',         // dataset INE: "Maó-Mahón"
+        'font romeu':                'font romeu odeillo via', // commune oficial al GeoJSON CN
+        // ─ Franja d'Aragó: català → nom oficial INE (sovint en castellà)
+        'osca':                      'huesca',
+        'saragossa':                 'zaragoza',
+        'terol':                     'teruel',
+        'vall de roures':            'valderrobres',
+        'binefar':                   'binefar',   // amb "é" el INE l'escriu igual sense accent normalitzat
+        'tamarit de llitera':        'tamarite de litera',
+        'calaceit':                  'calaceite',
+        'massalio':                  'mazaleon',
+        'mequinensa':                'mequinenza',
+        'pena roja':                 'penarroya de tastavins',
+        'faio':                      'fayon',
+        'fondespatla':               'fuentespalda',
+        'la codonyera':              'la codonera',
+        'cretes':                    'cretas',
+        'la freixneda':              'la fresneda',
+        'arenys de lledo':           'arens de lledo',
+        'torre del comte':           'torre del compte',
+        'vall del tormo':            'valdeltormo',
+        'valljunquera':              'valjunquera',
+        'monroig':                   'monroyo',
+        'beseit':                    'beceite',
+        'lledo':                     'lledo',
+        'rafels':                    'rafales',
+        'saidi':                     'zaidin',
+        'torrent de cinca':          'torrente de cinca',
+        'vilella de cinca':          'velilla de cinca',
+        'areny de noguera':          'aren',
+        'benavarri':                 'benabarre',
+        'estopanya':                 'estopinan del castillo',
+        'lasquarri':                 'lascuarre',
+        'montanui':                  'montanuy',
+        'altorrico':                 'altorricon',
+        'castellonroi':              'castillonroy',
+        'peralta de calassanc':      'peralta de calasanz',
+        'sant esteve de llitera':    'san esteban de litera',
+        'valldellou':                'valdellou',
+      };
+
+      // Index: normMuni → recursos[]
+      const byMuni = {};
+      filtered.forEach(r => {
+        if (!r.municipi) return;
+        const k = normMuni(r.municipi);
+        (byMuni[k] = byMuni[k] || []).push(r);
+        // Si hi ha alies (català → francès, etc.), indexa també amb l'alies
+        const alias = MUNI_ALIASES[k];
+        if (alias) (byMuni[alias] = byMuni[alias] || []).push(r);
+      });
+      // Index: territori → recursos[]
+      const byTerri = {};
+      filtered.forEach(r => {
+        (byTerri[r.territori] = byTerri[r.territori] || []).push(r);
+      });
+
+      // Choropleth només per CAT (el TopoJSON cobreix Catalunya)
+      choroplethLayer = L.geoJSON(municipisFeatures, {
+        style: feat => {
+          const k = normMuni(feat.properties.n);
+          const n = (byMuni[k] || []).length;
+          return {
+            color: '#ffffff',
+            weight: 0.5,
+            fillColor: colorForCount(n),
+            fillOpacity: 0.92,
+          };
+        },
+        onEachFeature: (feat, layer) => {
+          const k = normMuni(feat.properties.n);
+          const list = byMuni[k] || [];
+          layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#0a0a0a' }));
+          layer.on('mouseout', () => layer.setStyle({ weight: 0.5, color: '#ffffff' }));
+          const muni = feat.properties.n;
+          const comarca = feat.properties.c;
+          let html;
+          if (list.length === 0) {
+            html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(comarca)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
+          } else {
+            html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(comarca)}</div>`;
+            html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+            list.slice(0, 10).forEach(r => {
+              html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
+            });
+            if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
+            html += '</div>';
+          }
+          // Botó "Situar-me aquí"
+          html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
+          layer.bindPopup(html);
+          layer.on('popupopen', e => {
+            const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+            btns.forEach(btn => btn.addEventListener('click', () => {
+              byId('overlay-fitxa').classList.add('open');
+              openFitxa(btn.dataset.id);
+            }));
+            const locBtn = e.popup._contentNode.querySelector('.popup-locate');
+            if (locBtn) locBtn.addEventListener('click', () => {
+              const c = layer.getBounds().getCenter();
+              setUserLocation({ lat: c.lat, lon: c.lng, label: feat.properties.n || 'Municipi' });
+              layer.closePopup();
+            });
+          });
+        },
+      }).addTo(map);
+
+      // Capa municipis Balears + PV (choropleth rosa com CAT)
+      if (esCatalanMunis && esCatalanMunis.features.length) {
+        esMunisLayer = L.geoJSON(esCatalanMunis, {
+          style: feat => {
+            const k = normMuni(feat.properties.name);
+            const n = (byMuni[k] || []).length;
+            return {
+              color: '#ffffff',
+              weight: 0.4,
+              fillColor: colorForCount(n),
+              fillOpacity: 0.92,
+            };
+          },
+          onEachFeature: (feat, layer) => {
+            const k = normMuni(feat.properties.name);
+            const list = byMuni[k] || [];
+            layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#0a0a0a' }));
+            layer.on('mouseout', () => layer.setStyle({ weight: 0.4, color: '#ffffff' }));
+            const muni = feat.properties.name;
+            const terri = feat.properties._territori;
+            const terriLabel = (TERRITORI_META[terri] || {}).nom || '';
+            let html;
+            if (list.length === 0) {
+              html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(terriLabel)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
+            } else {
+              html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(terriLabel)}</div>`;
+              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+              list.slice(0, 10).forEach(r => {
+                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
+              });
+              if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
+              html += '</div>';
+            }
+            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
+            layer.bindPopup(html);
+            layer.on('popupopen', e => {
+              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+              btns.forEach(btn => btn.addEventListener('click', () => {
+                byId('overlay-fitxa').classList.add('open');
+                openFitxa(btn.dataset.id);
+              }));
+              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
+              if (locBtn) locBtn.addEventListener('click', () => {
+                const c = layer.getBounds().getCenter();
+                setUserLocation({ lat: c.lat, lon: c.lng, label: muni });
+                layer.closePopup();
+              });
+            });
+          },
+        }).addTo(map);
+      }
+
+      // Capa de províncies espanyoles no-CAT (només Franja + Múrcia, Balears/PV ja es mostren a nivell municipal)
+      if (provinciesFeatures && provinciesFeatures.features.length) {
+        const provFeatsMunicipalless = {
+          type: 'FeatureCollection',
+          features: provinciesFeatures.features.filter(f => {
+            const t = PROV_TERRITORI[f.properties.name];
+            return t === 'franja' || t === 'carxe';
+          }),
+        };
+        provLayer = L.geoJSON(provFeatsMunicipalless, {
+          style: feat => {
+            const terri = PROV_TERRITORI[feat.properties.name];
+            const list = byTerri[terri] || [];
+            const hasAny = list.length > 0;
+            return {
+              color: hasAny ? '#0a0a0a' : '#A3A3A3',
+              weight: hasAny ? 1.2 : 0.7,
+              dashArray: hasAny ? null : '4 4',
+              fillColor: TERRITORI_COLOR_PASTEL[terri] || '#F3F4F6',
+              fillOpacity: 0.55,
+            };
+          },
+          onEachFeature: (feat, layer) => {
+            const terri = PROV_TERRITORI[feat.properties.name];
+            const territoriMeta = TERRITORI_META[terri] || {};
+            const list = byTerri[terri] || [];
+            layer.on('mouseover', () => layer.setStyle({ weight: 2.2 }));
+            layer.on('mouseout', () => layer.setStyle({ weight: list.length ? 1.2 : 0.7 }));
+            let html = `<div class="popup-nom">${escHtml(feat.properties.name)} <span style="background:${TERRITORI_COLOR_PASTEL[terri] || '#ccc'};color:var(--ink);padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px;border:1px solid rgba(0,0,0,0.2)">${list.length}</span></div>`;
+            html += `<div class="popup-muni">${escHtml(territoriMeta.nom || terri)}</div>`;
+            if (list.length === 0) {
+              html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
+            } else {
+              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+              list.slice(0, 10).forEach(r => {
+                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${r.municipi ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>` : ''}</span>`;
+              });
+              if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
+              html += '</div>';
+            }
+            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me a ${escHtml(feat.properties.name)}</button></div>`;
+            layer.bindPopup(html);
+            layer.on('popupopen', e => {
+              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+              btns.forEach(btn => btn.addEventListener('click', () => {
+                byId('overlay-fitxa').classList.add('open');
+                openFitxa(btn.dataset.id);
+              }));
+              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
+              if (locBtn) locBtn.addEventListener('click', () => {
+                const c = layer.getBounds().getCenter();
+                setUserLocation({ lat: c.lat, lon: c.lng, label: feat.properties.name });
+                layer.closePopup();
+              });
+            });
+          },
+        }).addTo(map);
+        // Envia la capa de províncies al fons (sota el choropleth i els markers)
+        provLayer.bringToBack();
+      }
+
+      // Capes municipals per territoris amb subdivisions pròpies (CN communes, Andorra parròquies)
+      Object.keys(MUNICIPAL_TERRITORIES).forEach(terri => {
+        const def = MUNICIPAL_TERRITORIES[terri];
+        const feats = municipalTerritories[terri];
+        if (!feats || !feats.features.length) return;
+        const layer = L.geoJSON(feats, {
+          style: feat => {
+            const k = normMuni(feat.properties[def.nameField]);
+            const n = (byMuni[k] || []).length;
+            return {
+              color: '#ffffff',
+              weight: 0.5,
+              fillColor: colorForCount(n),
+              fillOpacity: 0.92,
+            };
+          },
+          onEachFeature: (feat, lyr) => {
+            const muni = feat.properties[def.nameField];
+            const k = normMuni(muni);
+            const list = byMuni[k] || [];
+            lyr.on('mouseover', () => lyr.setStyle({ weight: 2, color: '#0a0a0a' }));
+            lyr.on('mouseout', () => lyr.setStyle({ weight: 0.5, color: '#ffffff' }));
+            let html;
+            if (list.length === 0) {
+              html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(def.label)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
+            } else {
+              html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(def.label)}</div>`;
+              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+              list.slice(0, 10).forEach(r => {
+                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
+              });
+              html += '</div>';
+            }
+            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
+            lyr.bindPopup(html);
+            lyr.on('popupopen', e => {
+              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+              btns.forEach(btn => btn.addEventListener('click', () => {
+                byId('overlay-fitxa').classList.add('open');
+                openFitxa(btn.dataset.id);
+              }));
+              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
+              if (locBtn) locBtn.addEventListener('click', () => {
+                const c = lyr.getBounds().getCenter();
+                setUserLocation({ lat: c.lat, lon: c.lng, label: muni });
+                lyr.closePopup();
+              });
+            });
+          },
+        }).addTo(map);
+        municipalLayers[terri] = layer;
+      });
+
+      // Capes simples (només l'Alguer ara) — 1 polígon per territori
+      Object.keys(SIMPLE_TERRITORIES).forEach(terri => {
+        const feats = simpleTerritories[terri];
+        if (!feats || !feats.features.length) return;
+        const def = SIMPLE_TERRITORIES[terri];
+        const list = byTerri[terri] || [];
+        const hasAny = list.length > 0;
+        const layer = L.geoJSON(feats, {
+          style: () => ({
+            color: hasAny ? '#0a0a0a' : '#A3A3A3',
+            weight: hasAny ? 1.2 : 0.7,
+            dashArray: hasAny ? null : '4 4',
+            fillColor: TERRITORI_COLOR_PASTEL[terri] || '#F3F4F6',
+            fillOpacity: 0.55,
+          }),
+          onEachFeature: (feat, lyr) => {
+            lyr.on('mouseover', () => lyr.setStyle({ weight: 2.2 }));
+            lyr.on('mouseout', () => lyr.setStyle({ weight: hasAny ? 1.2 : 0.7 }));
+            let html = `<div class="popup-nom">${escHtml(def.label)} <span style="background:${TERRITORI_COLOR_PASTEL[terri] || '#ccc'};color:var(--ink);padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px;border:1px solid rgba(0,0,0,0.2)">${list.length}</span></div>`;
+            html += `<div class="popup-muni">${escHtml(def.sub)}</div>`;
+            if (list.length === 0) {
+              html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
+            } else {
+              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+              list.slice(0, 10).forEach(r => {
+                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${r.municipi ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>` : ''}</span>`;
+              });
+              html += '</div>';
+            }
+            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me a ${escHtml(def.label)}</button></div>`;
+            lyr.bindPopup(html);
+            lyr.on('popupopen', e => {
+              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+              btns.forEach(btn => btn.addEventListener('click', () => {
+                byId('overlay-fitxa').classList.add('open');
+                openFitxa(btn.dataset.id);
+              }));
+              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
+              if (locBtn) locBtn.addEventListener('click', () => {
+                const c = lyr.getBounds().getCenter();
+                setUserLocation({ lat: c.lat, lon: c.lng, label: def.label });
+                lyr.closePopup();
+              });
+            });
+          },
+        }).addTo(map);
+        layer.bringToBack();
+        simpleLayers[terri] = layer;
+      });
+
+      // Markers per a TOTS els recursos amb coord. Agrupa per coord idèntica (els recursos
+      // al mateix municipi tenen la mateixa coord → evitem apilar-los en un sol marker "soroll")
+      const byCoord = {};
+      filtered.filter(r => r.coord).forEach(r => {
+        const k = r.coord[0].toFixed(4) + ',' + r.coord[1].toFixed(4);
+        (byCoord[k] = byCoord[k] || []).push(r);
+      });
+      Object.entries(byCoord).forEach(([key, group]) => {
+        const r0 = group[0];
+        const color = TIPUS_META[r0.tipus].color;
+        // Dot petit (10px) per a 1 recurs; dot lleugerament més gran amb comptador si n'hi ha múltiples
+        const isMulti = group.length > 1;
+        const size = isMulti ? 18 : 10;
+        const badge = isMulti ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.5)">${group.length}</div>` : '';
+        const icon = L.divIcon({
+          className: 'transitem-marker',
+          html: `<div style="position:relative;width:${size}px;height:${size}px"><div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:${isMulti ? 2 : 1.5}px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>${badge}</div>`,
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2],
+        });
+        const marker = L.marker(r0.coord, { icon }).addTo(map);
+        // Popup amb la llista (si n'hi ha més d'un) o la fitxa ràpida
+        let html;
+        if (group.length === 1) {
+          html = `<div class="popup-nom">${escHtml(r0.nom)}</div>
+            <div class="popup-muni">${escHtml(r0.municipi || '')}${r0.comarca ? ' · ' + escHtml(r0.comarca) : ''}</div>
+            <span class="popup-btn" data-id="${r0.id}" style="margin-top:6px;display:inline-block">Veure fitxa →</span>`;
+        } else {
+          html = `<div class="popup-nom">${escHtml(r0.municipi || 'Recursos aquí')} <span style="background:#0a0a0a;color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${group.length}</span></div>
+            <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto">`;
+          group.forEach(r => {
+            html += `<span class="popup-btn" data-id="${r.id}" style="padding:4px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
+          });
+          html += '</div>';
+        }
+        marker.bindPopup(html);
+        marker.on('popupopen', e => {
+          const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
+          btns.forEach(btn => btn.addEventListener('click', () => {
+            byId('overlay-fitxa').classList.add('open');
+            openFitxa(btn.dataset.id);
+          }));
+        });
+        extraMarkers.push(marker);
+      });
+    }
+
+    // Retorna el TopoJSON→GeoJSON ja carregat (per debug)
+    window.__getMunicipis = () => municipisFeatures;
+
+    // ─── Location picker (geo, search, postal, click) ────────────────
+    function setUserLocation({ lat, lon, label }) {
+      userLoc = { lat, lon, label: label || `${lat.toFixed(4)}, ${lon.toFixed(4)}` };
+      byId('mapa-loc-picker').style.display = 'none';
+      byId('mapa-loc-active').style.display = 'block';
+      byId('mapa-current-label').textContent = '📍 ' + userLoc.label;
+      setMapInteractive(true);
+      updateUserLayers();
+      updateResultList();
+    }
+
+    function clearUserLocation() {
+      userLoc = null;
+      if (userMarker) { userMarker.remove(); userMarker = null; }
+      if (userCircle) { userCircle.remove(); userCircle = null; }
+      byId('mapa-loc-picker').style.display = 'block';
+      byId('mapa-loc-active').style.display = 'none';
+      setMapInteractive(false);
+      fitStaticView();
+    }
+
+    function updateUserLayers() {
+      if (!map || !userLoc) return;
+      const { lat, lon } = userLoc;
+      const rad = getRadiusKm();
+      if (userMarker) userMarker.remove();
+      if (userCircle) userCircle.remove();
+      userMarker = L.marker([lat, lon], {
+        icon: L.divIcon({
+          className: 'user-marker',
+          html: `<div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--pink));border:3px solid #fff;box-shadow:0 0 0 4px rgba(245,169,184,0.35),0 2px 8px rgba(0,0,0,0.3)"></div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11],
+        }),
+        zIndexOffset: 1000,
+      }).addTo(map);
+      userCircle = L.circle([lat, lon], {
+        radius: rad * 1000,
+        color: '#B83B5E',
+        fillColor: '#EC4899',
+        fillOpacity: 0.08,
+        weight: 2,
+        dashArray: '6 4',
+      }).addTo(map);
+      // Zoom als bounds del cercle + petit marge
+      map.fitBounds(userCircle.getBounds(), { padding: [20, 20] });
+    }
+
+    function haversineKm(a, b) {
+      if (!a || !b) return Infinity;
+      const R = 6371, toRad = d => d * Math.PI / 180;
+      const dLat = toRad(b[0] - a[0]), dLon = toRad(b[1] - a[1]);
+      const la1 = toRad(a[0]), la2 = toRad(b[0]);
+      const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    }
+
+    function updateResultList() {
+      const countEl = byId('mapa-result-count');
+      const listEl = byId('mapa-result-list');
+      if (!userLoc) { countEl.textContent = ''; listEl.innerHTML = ''; return; }
+      const q = searchQuery.trim();
+      const rad = getRadiusKm();
+      const items = RECURSOS
+        .filter(r => r.coord && entMatchesFilters(r) && entMatchesQuery(r, q))
+        .map(r => ({ ...r, _dist: haversineKm([userLoc.lat, userLoc.lon], r.coord) }))
+        .filter(r => r._dist <= rad)
+        .sort((a, b) => a._dist - b._dist);
+      countEl.innerHTML = `<strong>${items.length}</strong> ${items.length === 1 ? 'recurs' : 'recursos'} en ${rad} km`;
+      if (items.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--ink-3);padding:1rem;font-size:0.82rem">Cap recurs dins del radi. Prova d\'ampliar-lo.</div>';
+        return;
+      }
+      listEl.innerHTML = items.slice(0, 50).map(r => {
+        const color = TIPUS_META[r.tipus].color;
+        return `<div class="mapa-result-item" style="--tipcolor:${color}" data-id="${r.id}">
+          <div class="nom">${escHtml(r.nom)}</div>
+          <div class="meta"><span>${escHtml(r.municipi || '')}</span><span class="dist">${r._dist.toFixed(1)} km</span></div>
+        </div>`;
+      }).join('');
+      listEl.querySelectorAll('.mapa-result-item').forEach(el => {
+        el.addEventListener('click', () => {
+          byId('overlay-fitxa').classList.add('open');
+          openFitxa(el.dataset.id);
+        });
+      });
+    }
+
+    // ─── Geolocalització ─────
+    byId('mapa-btn-geo')?.addEventListener('click', () => {
+      if (!navigator.geolocation) { alert('El navegador no suporta geolocalització.'); return; }
+      const btn = byId('mapa-btn-geo');
+      btn.textContent = '⏳ Buscant…';
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'La meva ubicació' });
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg> La meva ubicació';
+        },
+        err => {
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8Z"/></svg> La meva ubicació';
+          alert('No s\'ha pogut obtenir la ubicació: ' + err.message);
+        },
+        { timeout: 10000, maximumAge: 300000 }
+      );
+    });
+
+    // ─── Clear ubicació ─────
+    byId('mapa-btn-clear-loc')?.addEventListener('click', clearUserLocation);
+
+    // ─── Radi slider ─────
+    byId('mapa-radius-slider')?.addEventListener('input', e => {
+      radiusIdx = parseInt(e.target.value, 10);
+      byId('mapa-radius-val').textContent = getRadiusKm();
+      if (userLoc) { updateUserLayers(); updateResultList(); }
+    });
+
+    // ─── Cercador de municipis + codi postal ─────
+    function buildSearchIndex() {
+      // Construeix índex: totes les municipis coneguts amb coord + municipis dels recursos
+      const byName = {};
+      // MUNICIPI_COORDS (manual + capitals) és la font primària
+      Object.keys(MUNICIPI_COORDS).forEach(name => {
+        byName[name.toLowerCase()] = { name, coord: MUNICIPI_COORDS[name] };
+      });
+      // Afegeix municipis dels recursos (si no ja indexats)
+      RECURSOS.forEach(r => {
+        if (r.municipi && r.coord) {
+          const k = r.municipi.toLowerCase();
+          if (!byName[k]) byName[k] = { name: r.municipi, coord: r.coord };
+        }
+      });
+      return Object.values(byName).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    let searchIndex = null;
+    const searchInput = byId('mapa-search-input');
+    const searchSugs = byId('mapa-search-sugs');
+
+    function showSugs(list) {
+      if (!list.length) { searchSugs.style.display = 'none'; return; }
+      searchSugs.innerHTML = list.slice(0, 8).map((s, i) =>
+        `<button type="button" data-i="${i}" data-type="${s._type || 'muni'}">
+          <div>${escHtml(s.name)}</div>
+          ${s.hint ? `<div class="sug-hint">${escHtml(s.hint)}</div>` : ''}
+        </button>`
+      ).join('');
+      searchSugs.style.display = 'block';
+      searchSugs.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.i, 10);
+          const s = list[i];
+          setUserLocation({ lat: s.coord[0], lon: s.coord[1], label: s.name });
+          searchInput.value = '';
+          searchSugs.style.display = 'none';
+        });
+      });
+    }
+
+    if (searchInput) {
+      let searchTimer;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const q = searchInput.value.trim().toLowerCase();
+        if (!q) { searchSugs.style.display = 'none'; return; }
+        if (!searchIndex) searchIndex = buildSearchIndex();
+        // Si sembla un codi postal (4-5 dígits), debounce + Nominatim
+        if (/^\d{4,5}$/.test(q)) {
+          searchTimer = setTimeout(() => lookupPostalCode(q), 500);
+          showSugs([{ name: `Cercant codi postal ${q}…`, coord: [0,0], _type: 'cp_wait' }]);
+          return;
+        }
+        // Autocomplete per nom de municipi
+        const matches = searchIndex.filter(s => s.name.toLowerCase().includes(q));
+        showSugs(matches.map(s => ({ ...s, hint: 'Municipi' })));
+      });
+      searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim()) searchInput.dispatchEvent(new Event('input'));
+      });
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.mapa-search-inp')) searchSugs.style.display = 'none';
+      });
+    }
+
+    async function lookupPostalCode(cp) {
+      try {
+        // Nominatim: rate-limited 1 req/sec. Cerca a ES, FR, AD, IT (països de parla catalana)
+        const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(cp)}&countrycodes=es,fr,ad,it&format=json&limit=5`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ca' } });
+        const data = await res.json();
+        if (!data.length) {
+          showSugs([{ name: `Codi postal ${cp}: no trobat`, coord: [0,0], _type: 'cp_none' }]);
+          return;
+        }
+        showSugs(data.map(d => ({
+          name: d.display_name.split(',').slice(0, 2).join(', '),
+          hint: 'Codi postal ' + cp,
+          coord: [parseFloat(d.lat), parseFloat(d.lon)],
+        })));
+      } catch (e) {
+        showSugs([{ name: `Error cercant ${cp}`, coord: [0,0], _type: 'cp_err' }]);
+      }
+    }
+
+    // ─── Clear cache → shared/js/cache-control.js (auto-listener a #btn-clear-cache)
+
+    // ─── Mode nit → shared/js/theme.js ─────────
+    // SharedTheme s'auto-inicialitza (llegeix transitem-dark, aplica html.dark,
+    // actualitza meta theme-color, munta listener al #toggle-dark amb classe .on).
+
+    // ─── Vista pill switch (sincronitzat amb btn-vista) ─────────────
+    const vistaSwitch = byId('config-vista-switch');
+    function refreshVistaSwitch() {
+      const curr = getVista();
+      vistaSwitch.querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.v === curr);
+      });
+    }
+    vistaSwitch.addEventListener('click', e => {
+      const b = e.target.closest('button[data-v]');
+      if (!b) return;
+      setVista(b.dataset.v);
+      refreshVistaSwitch();
+    });
+    // Patch: setVista ha de refrescar el switch
+    const _origSetVista = setVista;
+    window.setVista = function(v) { _origSetVista(v); refreshVistaSwitch(); };
+    // Fem el patch via wrapping del btn-vista existent
+    byId('btn-vista').addEventListener('click', () => setTimeout(refreshVistaSwitch, 0));
+    refreshVistaSwitch();
+
+    // ─── Onboarding → shared/js/onboarding.js ──
+    // SharedOnboarding gestiona render + version-gating + markSeen al tancar.
+    // El listener del #btn-entesos el munta el shared (i el seu maybeStart()
+    // ja inclou un setTimeout de 0; la pausa estètica de 500ms la posem aquí).
+
+    // Reobre des de Config → "Veure nota inicial"
+    byId('btn-reveure-tutorial').addEventListener('click', () => {
+      byId('overlay-config').classList.remove('open');
+      setTimeout(() => window.SharedOnboarding.show(), 200);
+    });
+
+    // Dispara l'onboarding en primera visita, encadenat al dismiss del splash
+    function startOnboardingDelayed() {
+      setTimeout(() => window.SharedOnboarding.maybeStart(), 500);
+    }
+    if (window.SharedSplash && window.SharedSplash.isDismissed()) {
+      startOnboardingDelayed();
+    } else {
+      document.addEventListener('splash:dismiss', () => {
+        setTimeout(startOnboardingDelayed, 300);
+      }, { once: true });
+    }
+
+    // ─── PWA install → shared/js/install-prompt.js ──────
+    // SharedInstall gestiona detection + native prompt.
+    // Aquí només renderitzem la UI segons l'estat (event-driven).
+    const installBtn = byId('btn-install');
+    const installHint = byId('install-hint');
+
+    function renderInstallUI(state) {
+      // Botó: visible només quan tenim deferredPrompt (Android Chrome/Edge)
+      installBtn.style.display = state.hasDeferredPrompt && !state.installed ? '' : 'none';
+
+      // Hint segons estat
+      if (state.isStandalone) {
+        installHint.textContent = "Ja estàs fent servir l'app instal·lada.";
+      } else if (state.installed) {
+        installHint.innerHTML = 'Ja tens Transitem instal·lada. Obre-la des de l\'escriptori.';
+      } else if (state.isIOS) {
+        installHint.innerHTML = 'A iPhone/iPad: toca <strong>compartir</strong> i selecciona <em>"Afegir a la pantalla d\'inici"</em>.';
+      } else if (state.hasDeferredPrompt) {
+        installHint.textContent = "Instal·la l'app per accedir-hi directament des del teu dispositiu.";
+      } else {
+        installHint.innerHTML = 'Obre el menú del navegador (⋮) i selecciona <em>«Instal·lar aplicació»</em>.';
+      }
+    }
+
+    document.addEventListener('install:state-change', e => renderInstallUI(e.detail));
+    installBtn.addEventListener('click', () => window.SharedInstall && window.SharedInstall.prompt());
+
+    // Render inicial (en cas que l'estat ja s'hagi emès abans del listener)
+    if (window.SharedInstall) renderInstallUI(window.SharedInstall.getState());
+
+    // ─── Deep-link ────────────────────────────
+    if (location.hash) {
+      const id = location.hash.slice(1);
+      setTimeout(() => openFitxa(id), 400);
+    }
+
+    // ─── Service worker → shared/js/sw-register.js (afegit a la <head>)
+
+    // ─── Inicialitza ──────────────────────────
+    renderAjudamOpts();
+    renderLlista();
+    setVista(getVista());
+    updateAjudamCount();
+  })();
+  </script>
+
+<!-- ─────────────── LEGAL KIT (Avís legal + Privacitat + Contacte) ─────────────── -->
+<style>
+  .legal-links {
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    color: rgba(0,0,0,0.42);
+    letter-spacing: 0.01em;
+  }
+  .legal-links button {
+    background: none; border: 0; padding: 0;
+    font: inherit; color: inherit; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .legal-links button:hover { color: var(--pink-ink); }
+  .legal-links span { margin: 0 0.45rem; opacity: 0.5; }
+  html.dark .legal-links { color: rgba(255,255,255,0.38); }
+  html.dark .legal-links button:hover { color: #fca5c8; }
+
+  #overlay-legal:not(.open),
+  #overlay-privacy:not(.open),
+  #overlay-contact:not(.open) { display: none !important; }
+
+  #overlay-legal .modal h3,
+  #overlay-privacy .modal h3 { font-size: 0.98rem; font-weight: 600; margin: 1rem 0 0.35rem; color: var(--ink); }
+  #overlay-legal .modal p,
+  #overlay-privacy .modal p { margin: 0.3rem 0; line-height: 1.55; color: var(--ink-2); font-size: 0.88rem; }
+  #overlay-legal .modal ul,
+  #overlay-privacy .modal ul { margin: 0.2rem 0 0.4rem 1.1rem; padding: 0; font-size: 0.85rem; color: var(--ink-2); }
+  html.dark #overlay-legal .modal h3,
+  html.dark #overlay-privacy .modal h3 { color: #f5f5f5; }
+  html.dark #overlay-legal .modal p,
+  html.dark #overlay-privacy .modal p,
+  html.dark #overlay-legal .modal ul,
+  html.dark #overlay-privacy .modal ul { color: rgba(255,255,255,0.72); }
+
+  #overlay-contact .modal { width: min(500px, 94vw); }
+  .contact-field { display: block; margin-bottom: 0.75rem; }
+  .contact-field label { display: block; font-size: 0.72rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink-2); }
+  html.dark .contact-field label { color: rgba(255,255,255,0.72); }
+  .contact-field input, .contact-field textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 0.5rem 0.65rem; font: inherit; font-size: 0.88rem;
+    border: 1px solid rgba(0,0,0,0.18); border-radius: 8px;
+    background: rgba(255,255,255,0.6); color: inherit;
+  }
+  html.dark .contact-field input, html.dark .contact-field textarea {
+    background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15);
+  }
+  .contact-field textarea { min-height: 100px; resize: vertical; }
+  .contact-field input:focus, .contact-field textarea:focus {
+    outline: none; border-color: var(--pink-ink);
+    box-shadow: 0 0 0 3px rgba(245,169,184,0.22);
+  }
+  .contact-honeypot { position: absolute; left: -9999px; top: -9999px; }
+  .contact-consent { display: flex; align-items: flex-start; gap: 0.4rem; font-size: 0.76rem; color: var(--ink-2); margin: 0.5rem 0 0.8rem; }
+  html.dark .contact-consent { color: rgba(255,255,255,0.65); }
+  .contact-consent input { margin-top: 0.15rem; }
+  .contact-submit {
+    width: 100%; padding: 0.7rem;
+    background: linear-gradient(90deg, var(--blue), var(--pink));
+    color: #fff;
+    border: 0; border-radius: 100px; font: inherit; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; transition: filter 0.15s;
+  }
+  .contact-submit:hover:not(:disabled) { filter: brightness(0.95); }
+  .contact-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .contact-notice {
+    font-size: 0.76rem; padding: 0.55rem 0.7rem; border-radius: 8px;
+    background: rgba(251, 191, 36, 0.15); color: #92400e;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    margin-bottom: 0.8rem;
+  }
+  .contact-notice a { color: inherit; text-decoration: underline; }
+  html.dark .contact-notice { background: rgba(251, 191, 36, 0.1); color: #fbbf24; }
+  .contact-error { font-size: 0.78rem; color: var(--pink-ink); margin: 0.4rem 0; }
+  .contact-success { text-align: center; padding: 1.5rem 0; }
+  .contact-success .tick {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--pink));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.8rem; font-size: 1.3rem;
+  }
+
+  .btn-modal-back {
+    position: absolute; top: 1rem; left: 1rem;
+    width: 34px; height: 34px;
+    border: 0; cursor: pointer;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.04);
+    display: none; align-items: center; justify-content: center;
+    color: var(--ink-2);
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-modal-back:hover { background: rgba(0,0,0,0.08); color: var(--ink); }
+  html.dark .btn-modal-back { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
+  html.dark .btn-modal-back:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .btn-modal-back.visible { display: inline-flex; }
+  .overlay .modal:has(.btn-modal-back.visible) h2 { padding-left: 2.6rem; }
+</style>
+
+<div id="overlay-legal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="legal-title">
+  <div class="modal">
+    <button class="btn-modal-back" data-legal-back aria-label="Enrere"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button class="modal-close" data-legal-close aria-label="Tancar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <h2 id="legal-title">Avís legal</h2>
+
+    <h3>Qui hi ha darrere</h3>
+    <p><strong>Transitem</strong> (transitem.cat) és un directori obert de recursos per a persones trans i no binàries als territoris de parla catalana.</p>
+    <p>Responsable: projecte Transitem, impulsat per la societat civil. Es tracta d'un projecte independent, sense ànim de lucre, sense publicitat ni patrocinadors. No té personalitat jurídica pròpia ni realitza activitat econòmica.</p>
+
+    <h3>Contacte</h3>
+    <p>Per a qualsevol consulta, correcció, aportació o exercici de drets, pots fer servir el <button type="button" data-legal-openfrom="contact" style="background:none;border:0;padding:0;font:inherit;color:var(--pink-ink);cursor:pointer;text-decoration:underline">formulari de contacte</button>.</p>
+
+    <h3>Propietat intel·lectual</h3>
+    <p><strong>Codi i continguts originals:</strong> tots els drets reservats © 2026. La reutilització requereix permís previ.</p>
+    <p><strong>Les entitats enllaçades</strong> pertanyen als seus respectius titulars i es mostren amb finalitat informativa i orientativa. Aquest portal no té cap relació ni representació sobre elles.</p>
+
+    <h3>Responsabilitat</h3>
+    <p>La informació d'aquest portal té caràcter orientatiu. No garantim l'exactitud ni la vigència dels continguts ni el funcionament dels llocs enllaçats. Les gestions i trobades amb les entitats sempre són responsabilitat de la persona usuària.</p>
+    <p>Aquest web <strong>no és una web oficial</strong> de cap administració pública, associació ni col·lectiu. Tampoc ofereix atenció sanitària, legal ni psicològica per si mateix.</p>
+
+    <h3>Legislació aplicable</h3>
+    <p>Aquest avís es regeix per la legislació espanyola i catalana aplicable (Llei 34/2002 LSSI-CE i normes concordants).</p>
+
+    <div class="modal-footer"><small>Països Catalans · 2026</small></div>
+  </div>
+</div>
+
+<div id="overlay-privacy" class="overlay" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+  <div class="modal">
+    <button class="btn-modal-back" data-legal-back aria-label="Enrere"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button class="modal-close" data-legal-close aria-label="Tancar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <h2 id="privacy-title">Política de privacitat</h2>
+
+    <h3>Resum</h3>
+    <p>Transitem no demana registre, no crea comptes d'usuari, no utilitza cookies de seguiment ni ven dades a ningú. La informació personal que processem és mínima i serveix només per fer funcionar el servei.</p>
+    <p><strong>Especialment rellevant</strong>: aquesta eina tracta sobre identitat de gènere, un tema sensible. Per això no guardem cap dada de navegació ni de consulta.</p>
+
+    <h3>Responsable</h3>
+    <p>Projecte Transitem, impulsat per la societat civil.</p>
+
+    <h3>Quines dades tractem</h3>
+    <ul>
+      <li><strong>Analítica (Vercel Analytics):</strong> sistema sense cookies amb hash temporal de la IP que rota diàriament. No permet identificar usuaris.</li>
+      <li><strong>Logs del servidor (Vercel):</strong> IP i petició, per motius tècnics i de seguretat, conservats segons política de Vercel.</li>
+      <li><strong>Emmagatzematge local:</strong> preferències al teu dispositiu (tema fosc, vista preferida). No surten del teu navegador.</li>
+      <li><strong>Formulari de contacte:</strong> si ens escrius, processem nom (opcional), email i missatge per respondre't. Enviament via Resend.</li>
+    </ul>
+
+    <h3>Base legal</h3>
+    <p>Interès legítim (art. 6.1.f RGPD) per al funcionament i seguretat del servei. Consentiment (art. 6.1.a) al formulari de contacte.</p>
+
+    <h3>Cessió a tercers</h3>
+    <p>No venem ni cedim dades. Utilitzem Vercel Inc. (hosting) i Resend (enviament de formularis), tots dos als EUA sota el marc EU-US Data Privacy Framework.</p>
+
+    <h3>Els teus drets</h3>
+    <p>Pots exercir els drets d'accés, rectificació, supressió, oposició, portabilitat i limitació a través del <button type="button" data-legal-openfrom="contact" style="background:none;border:0;padding:0;font:inherit;color:var(--pink-ink);cursor:pointer;text-decoration:underline">formulari de contacte</button>. També pots reclamar davant l'<a href="https://apdcat.gencat.cat" target="_blank" rel="noopener noreferrer" style="color:var(--pink-ink)">Autoritat Catalana de Protecció de Dades</a>.</p>
+
+    <div class="modal-footer"><small>Països Catalans · 2026</small></div>
+  </div>
+</div>
+
+<div id="overlay-contact" class="overlay" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+  <div class="modal">
+    <button class="btn-modal-back" data-legal-back aria-label="Enrere"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button class="modal-close" data-legal-close aria-label="Tancar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <h2 id="contact-title">Contacte</h2>
+    <div id="contact-body"></div>
+  </div>
+</div>
+
+<!-- Legal Kit JS → shared/js/legal-kit.js (config a app.config.js / legalKit) -->
+
+</body>
+</html>

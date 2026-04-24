@@ -1,0 +1,113 @@
+/* category-group.css — accordion de categoria amb summary 2-línies + descripció.
+ *
+ * Patró: cada categoria és un `<details>` que mostra al summary el nom + count
+ * + chevron, i sota una descripció breu sempre visible (tancat o obert).
+ * Quan s'obre, mostra els items dins.
+ *
+ * Markup esperat:
+ *   <details class="category-group" style="--grupcolor: #0284C7">
+ *     <summary>
+ *       <div class="category-group-row">
+ *         <span class="category-group-head">
+ *           <span class="dot"></span>
+ *           <span>Administració</span>
+ *         </span>
+ *         <span class="category-group-count">149 recursos</span>
+ *       </div>
+ *       <div class="category-group-desc">Serveis públics especialitzats...</div>
+ *     </summary>
+ *     <!-- items dins -->
+ *   </details>
+ *
+ * El projecte:
+ *  - Setteja `--grupcolor` per cada categoria via `style.setProperty()`
+ *  - Renderitza els items dins del details (CSS dels items per-projecte)
+ *
+ * Variables esperades (de tokens.css):
+ *   --ink, --ink-3, --border
+ */
+
+details.category-group {
+  border-top: 1px solid var(--border);
+  padding: 0.15rem 0;
+}
+
+details.category-group:first-child {
+  border-top: none;
+}
+
+details.category-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: block;
+  padding: 0.75rem 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+details.category-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.category-group-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.category-group-row::after {
+  content: '';
+  width: 9px; height: 9px;
+  border-right: 2px solid var(--ink-3);
+  border-bottom: 2px solid var(--ink-3);
+  transform: rotate(45deg);
+  transition: transform 0.18s;
+  margin-left: auto;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+details.category-group[open] > summary .category-group-row::after {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+
+.category-group-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--grupcolor, var(--ink));
+}
+
+.category-group-head .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.category-group-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+
+.category-group-desc {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  line-height: 1.45;
+  margin: 0.25rem 28px 0 16px;   /* dot 8px + gap 8px = 16px alineat amb el nom */
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Dark mode ─────────────────────────────────────── */
+html.dark details.category-group {
+  border-top-color: var(--border);  /* --border ja és dark via tokens.css */
+}

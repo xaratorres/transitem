@@ -1,0 +1,97 @@
+/* modals.css — overlay + modal base
+ * Pattern compartit entre Denunciem, Ciutadata i Transitem (quasi byte-identical).
+ *
+ * Markup esperat:
+ *   <div id="overlay-X" class="overlay">
+ *     <div class="modal">
+ *       <button class="modal-close" data-close="overlay-X">…</button>
+ *       <h2>Títol</h2>
+ *       …
+ *       <div class="modal-footer"><small>Territori · vX.Y · Any</small></div>
+ *     </div>
+ *   </div>
+ *
+ * Comportament: shared/js/overlay.js munta els listeners (data-close, ESC,
+ * backdrop click) i exposa window.SharedOverlay.{open,close}.
+ *
+ * Variables esperades a tokens.css / inline:
+ *   --bg, --ink, --ink-2, --ink-4, --border
+ */
+
+.overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(10, 10, 15, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  opacity: 0; pointer-events: none; visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.overlay.open {
+  opacity: 1; pointer-events: auto; visibility: visible;
+}
+
+.overlay .modal {
+  background: var(--bg);
+  border-radius: 14px;
+  width: min(680px, 94vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 1.6rem 1.8rem 1.4rem;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
+  transform: translateY(14px);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.overlay.open .modal {
+  transform: translateY(0);
+}
+
+.overlay .modal h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  transition: background 0.15s, color 0.15s;
+  border: 0; cursor: pointer;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+}
+
+.modal-footer {
+  margin-top: 1.3rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink-4);
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+/* ── Dark mode ─────────────────────────────────────── */
+html.dark .overlay {
+  background: rgba(10, 10, 11, 0.65);
+}
+
+html.dark .modal-close {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+html.dark .modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
