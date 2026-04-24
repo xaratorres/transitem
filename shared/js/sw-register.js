@@ -37,5 +37,11 @@
     window.location.reload();
   });
 
-  navigator.serviceWorker.register(SW_PATH).catch(() => {});
+  navigator.serviceWorker.register(SW_PATH).then(reg => {
+    // Comprova si hi ha una versió nova del SW a cada càrrega.
+    // Si n'hi ha una, s'instal·larà i (gràcies a skipWaiting + clients.claim)
+    // prendrà control immediatament; aleshores `controllerchange` recarregarà
+    // la pàgina perquè l'usuari vegi els canvis sense cap acció manual.
+    try { reg.update(); } catch (_) {}
+  }).catch(() => {});
 })();

@@ -90,7 +90,10 @@ self.buildSW = function (cfg) {
     if (url.origin !== self.location.origin) return;
 
     if (isCoreRequest(e.request)) {
-      // NETWORK-FIRST amb timeout
+      // NETWORK-FIRST amb timeout. Per als CORE fem `cache: 'reload'`
+      // perquè evitem que l'HTTP cache del navegador retorni una versió antiga.
+      // Així el SW sempre intenta agafar la versió fresca del servidor.
+      const freshReq = new Request(e.request, { cache: 'reload' });
       e.respondWith(
         new Promise(resolve => {
           let settled = false;
@@ -103,7 +106,7 @@ self.buildSW = function (cfg) {
               .then(r => resolve(r || fetch(e.request)));
           }, NETWORK_TIMEOUT_MS);
 
-          fetch(e.request)
+          fetch(freshReq)
             .then(res => {
               if (settled) return;
               settled = true;
