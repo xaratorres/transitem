@@ -23,8 +23,8 @@ window.APP_CONFIG = {
     primaryDark: '#5BA3D0',
     secondary: '#F5A9B8',
     splashFont: 'Playfair Display',
-    splashTitle: { part1: 'T', part2: '' },
-    splashSub: 'Recursos trans i no binaris',
+    splashTitle: { part1: 'Transitem', part2: '' },
+    splashSub: 'No estàs sol/a en aquest procés.',
     splashHint: 'Toca per entrar'
   },
 

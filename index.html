@@ -87,19 +87,19 @@
     #splash-t {
       font-family: 'Playfair Display', Georgia, serif;
       font-weight: 800;
-      font-size: clamp(9rem, 30vw, 18rem);
-      line-height: 0.85;
+      font-size: clamp(3.5rem, 12vw, 7rem);
+      line-height: 0.95;
       color: #fff;
       letter-spacing: -0.02em;
       text-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
     #splash-sub {
-      margin-top: 1rem;
-      font-size: clamp(0.75rem, 1.9vw, 1rem);
-      font-weight: 600;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
+      margin-top: 0.9rem;
+      font-size: clamp(1rem, 2.4vw, 1.35rem);
+      font-weight: 500;
+      letter-spacing: 0.01em;
       color: rgba(255,255,255,0.95);
+      max-width: 90vw;
     }
     #splash-hint {
       position: absolute; bottom: 2.5rem; left: 0; right: 0; text-align: center;
@@ -689,7 +689,7 @@
 
     /* ── Ajuda'm ── */
     #overlay-ajudam .modal { max-height: 94vh; overflow-y: auto; }
-    @media (min-width: 960px) { #overlay-ajudam .modal { width: min(880px, 94vw); } }
+    @media (min-width: 960px) { #overlay-ajudam .modal { width: min(1150px, 94vw); } }
     #overlay-ajudam .modal h2 { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .ajudam-count {
       display: inline-flex; align-items: center;
@@ -1037,8 +1037,8 @@
   <!-- ─── SPLASH ─────────────────────────────── -->
   <div id="splash">
     <div id="splash-inner">
-      <div id="splash-t">T</div>
-      <div id="splash-sub">Transitem.cat</div>
+      <div id="splash-t">Transitem</div>
+      <div id="splash-sub">No estàs sol/a en aquest procés.</div>
     </div>
     <div id="splash-hint">Toca per entrar</div>
   </div>
