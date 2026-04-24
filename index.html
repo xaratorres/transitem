@@ -614,6 +614,35 @@
     .mapa-radius-row input[type=range] {
       width: 100%;
       accent-color: var(--pink-ink);
+      /* Captura el gest horitzontal: sense això, iOS Safari a vegades
+         interpreta l'arrossegament com un scroll vertical del sidebar (té
+         overflow:auto) i la barra no es mou. */
+      touch-action: pan-x;
+      height: 32px; /* àrea de tap més generosa a mòbil */
+    }
+    /* Thumb més gran per poder agafar-lo amb el dit (els natius són ~12px) */
+    .mapa-radius-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--pink-ink);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: grab;
+    }
+    .mapa-radius-row input[type=range]::-moz-range-thumb {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--pink-ink);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: grab;
+    }
+    .mapa-radius-row input[type=range]::-webkit-slider-runnable-track {
+      height: 4px; border-radius: 3px; background: var(--border);
+    }
+    .mapa-radius-row input[type=range]::-moz-range-track {
+      height: 4px; border-radius: 3px; background: var(--border);
     }
 
     .mapa-result-count {
