@@ -3113,15 +3113,16 @@
           byId('overlay-fitxa').classList.add('open');
           openFitxa(el.dataset.id);
         });
-        // Clic al botó "lloc" → centrar mapa al marker i obrir popup
+        // Clic al botó "lloc" → obrir el popup del marker al lloc on és, SENSE
+        // moure ni fer zoom al mapa. Així l'usuari manté la referència de
+        // l'àrea de cerca i no es desorienta. Si el recurs és fora dels PPCC
+        // (no hi ha marker visible) obrim la fitxa.
         const locBtn = el.querySelector('.mapa-result-locate');
         if (locBtn) locBtn.addEventListener('click', e => {
           e.stopPropagation();
           const lat = parseFloat(el.dataset.lat);
           const lon = parseFloat(el.dataset.lon);
           if (isNaN(lat) || isNaN(lon)) return;
-          // Si el recurs és fora dels PPCC, no movem el mapa: obrim la fitxa.
-          // Mantenim la vista a l'àrea visible com va demanar l'usuari.
           const inBounds = lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
             && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1];
           if (!inBounds) {
@@ -3129,9 +3130,8 @@
             openFitxa(el.dataset.id);
             return;
           }
-          map.setView([lat, lon], Math.max(map.getZoom(), 12), { animate: true });
           const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
-          if (marker) setTimeout(() => marker.openPopup(), 400);
+          if (marker) marker.openPopup();
         });
       });
     }
