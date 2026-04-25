@@ -710,7 +710,22 @@
       display: flex; align-items: center; justify-content: center;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .mapa-result-locate:hover {
+    /* Limita el :hover a dispositius amb apuntador real (hover: hover); a
+       mòbil això evita el "sticky hover" que deixa el botó pintat de rosa
+       encara que ja l'hagis premut per deseleccionar. */
+    @media (hover: hover) {
+      .mapa-result-locate:hover {
+        background: var(--pink-ink);
+        color: #fff;
+        border-color: var(--pink-ink);
+      }
+      html.dark .mapa-result-locate:hover {
+        background: var(--pink-ink);
+        color: #fff;
+      }
+    }
+    /* Estat actiu real: només quan el popup del marker està obert. */
+    .mapa-result-locate.is-active {
       background: var(--pink-ink);
       color: #fff;
       border-color: var(--pink-ink);
@@ -719,10 +734,6 @@
       background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.12);
       color: var(--ink-2);
-    }
-    html.dark .mapa-result-locate:hover {
-      background: var(--pink-ink);
-      color: #fff;
     }
     html.dark .mapa-result-item { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
     .mapa-result-item:hover { background: var(--bg-soft); }
@@ -3216,13 +3227,28 @@
           const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
           if (!marker) return;
           // Toggle: si el popup d'aquest marker ja està obert, el tanquem.
-          // Així el botó funciona com un interruptor (seleccionar/deseleccionar).
           if (marker.isPopupOpen && marker.isPopupOpen()) {
             marker.closePopup();
           } else {
             marker.openPopup();
           }
+          // Treu el focus del botó perquè el navegador no el deixi pintat
+          // com a "actiu" quan ja s'ha tancat el popup.
+          locBtn.blur();
         });
+        // Reflecteix l'estat real del popup al botó: quan el marker s'obre,
+        // afegeix .is-active; quan es tanca (per qualsevol mecanisme), treu-la.
+        const lat = parseFloat(el.dataset.lat);
+        const lon = parseFloat(el.dataset.lon);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
+          if (marker) {
+            const setActive = on => locBtn && locBtn.classList.toggle('is-active', on);
+            marker.on('popupopen', () => setActive(true));
+            marker.on('popupclose', () => setActive(false));
+            if (marker.isPopupOpen && marker.isPopupOpen()) setActive(true);
+          }
+        }
       });
     }
 
