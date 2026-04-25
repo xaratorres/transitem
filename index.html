@@ -246,7 +246,17 @@
       border-radius: 100px;
       font-weight: 600;
       font-size: 0.82rem;
+      /* Reset estils nadius si es renderitza com a <button> (clicables des de
+         la intro per anar a Ajuda'm o a la vista mapa). */
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      transition: filter 0.15s, transform 0.05s;
     }
+    .llista-intro button.hint-ajudam:hover,
+    .llista-intro button.hint-map:hover { filter: brightness(0.95); }
+    .llista-intro button.hint-ajudam:active,
+    .llista-intro button.hint-map:active { transform: scale(0.97); }
     .llista-intro .hint-ajudam {
       background: linear-gradient(90deg, rgba(123,192,232,0.15), rgba(245,169,184,0.15));
       color: var(--pink-ink);
@@ -1510,11 +1520,14 @@
         <header class="llista-intro">
           <h1>Xarxa de suport trans, <span class="em-b">a prop</span> <span class="em-p">teu</span>.</h1>
           <p>Directori d'<strong>administració, associacions, col·lectius i grups de suport</strong> per a persones trans i no binàries als nostres territoris. Informació per començar, investigar o acompanyar.</p>
-          <p>Toca una entitat per veure què fa, a qui s'adreça i les dades de contacte. Si no saps per on començar, obre <span class="hint-ajudam">Ajuda'm</span> i respon les preguntes.</p>
-          <p>També pots activar la <span class="hint-map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg> vista mapa</span> des del botó de la barra per veure els recursos geogràficament.</p>
+          <p>Toca una entitat per veure què fa, a qui s'adreça i les dades de contacte. Si no saps per on començar, obre <button type="button" class="hint-ajudam" data-action="open-ajudam">Ajuda'm</button> i respon les preguntes.</p>
+          <p>També pots activar la <button type="button" class="hint-map" data-action="open-mapa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg> vista mapa</button> per veure els recursos geogràficament.</p>
         </header>
       `;
       host.innerHTML = INTRO;
+      // Els xips "Ajuda'm" / "vista mapa" de la intro són clicables.
+      host.querySelector('[data-action="open-ajudam"]')?.addEventListener('click', () => byId('btn-ajudam')?.click());
+      host.querySelector('[data-action="open-mapa"]')?.addEventListener('click', () => setVista('mapa'));
       const rightCol = document.createElement('div');
       rightCol.className = 'llista-rightcol';
 
