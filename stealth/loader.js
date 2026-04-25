@@ -14,11 +14,24 @@
 (function () {
   'use strict';
 
+  function removePreHide() {
+    var p = document.getElementById('stealth-prehide');
+    if (p) p.remove();
+  }
+
   // No fer res si no hi ha disfressa o si testing
   var qs = new URLSearchParams(location.search);
-  if (qs.get('nostealth') === '1') return;
+  if (qs.get('nostealth') === '1') { removePreHide(); return; }
   var current = (window.Stealth && window.Stealth.current && window.Stealth.current()) || null;
-  if (!current) return;
+  if (!current) { removePreHide(); return; }
+
+  // El loader fake només té sentit quan l'app s'obre INSTAL·LADA (standalone).
+  // Al navegador la URL ja revela transitem.cat, així que el camuflatge no hi
+  // aporta. La disfressa (manifest, icones) sí s'aplica sempre per consistència.
+  // Bypass: ?stealthforce=1 per provar el loader al navegador durant desenvolupament.
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                     window.navigator.standalone === true;
+  if (!isStandalone && qs.get('stealthforce') !== '1') { removePreHide(); return; }
 
   var DISGUISE_LABELS = {
     calculadora: { name: 'Calculadora', bg: '#2c3e50', fg: '#ecf0f1', icon: 'stealth/icones/calculadora-192.png' },
@@ -77,6 +90,8 @@
     ].join('');
 
     document.body.appendChild(loader);
+    // Treure el pre-hide aplicat per stealth.js: el loader ja tapa l'app
+    removePreHide();
 
     var elStatus = loader.querySelector('[data-sl-status]');
     var elFill = loader.querySelector('[data-sl-fill]');

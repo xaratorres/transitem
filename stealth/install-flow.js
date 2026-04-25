@@ -56,6 +56,170 @@
     return ov.querySelector('.stealth-body');
   }
 
+  // ── Quan l'app JA està instal·lada ───────────
+  // (Variant del flux: en lloc d'instal·lar, oferim canviar la icona.
+  //  Per fer-ho efectiu cal desinstal·lar i reinstal·lar, així ho avisem.)
+  function showInstalledChangeIcon() {
+    var current = (window.Stealth && window.Stealth.current && window.Stealth.current()) || null;
+    var body = ensureModal();
+    var iconSrc = current ? (BASE + DISGUISES[current].icon) : 'imatges/icon-192.png?v=1';
+    var name = current ? DISGUISES[current].label : 'Transitem';
+    var question, primaryLabel;
+    if (current) {
+      question = 'Tens l\'app instal·lada amb la icona <strong>' + name + '</strong>. Vols canviar-la per una altra?';
+      primaryLabel = 'Sí, canviar la icona';
+    } else {
+      question = 'Tens l\'app instal·lada amb la icona normal de <strong>Transitem</strong>. Vols passar a mode incògnit (icona camuflada)?';
+      primaryLabel = 'Sí, passar a mode incògnit';
+    }
+    body.innerHTML = [
+      '<h2>Ja la tens instal·lada</h2>',
+      '<div class="stealth-install-preview">',
+      '  <img src="' + iconSrc + '" alt="" class="stealth-install-icon">',
+      '  <div class="stealth-install-name">' + name + '</div>',
+      '</div>',
+      '<p class="stealth-intro">' + question + '</p>',
+      '<div class="stealth-actions">',
+      '  <button class="stealth-btn-primary" data-act="change">' + primaryLabel + '</button>',
+      '  <button class="stealth-btn-secondary" data-act="uninstall">Desinstal·lar l\'app</button>',
+      '  <button class="stealth-btn-secondary" data-act="keep">No, deixar com està</button>',
+      '</div>',
+    ].join('');
+    body.querySelector('[data-act="change"]').addEventListener('click', showStep2Reinstall);
+    body.querySelector('[data-act="uninstall"]').addEventListener('click', showUninstallInstructions);
+    body.querySelector('[data-act="keep"]').addEventListener('click', closeModal);
+  }
+
+  function showUninstallInstructions() {
+    var body = ensureModal();
+    var plat = detectPlatform();
+    var current = (window.Stealth && window.Stealth.current && window.Stealth.current()) || null;
+    var iconSrc = current ? (BASE + DISGUISES[current].icon) : 'imatges/icon-192.png?v=1';
+    var name = current ? DISGUISES[current].label : 'Transitem';
+    var steps;
+    if (plat.isIOS) {
+      steps = [
+        'Ves a la pantalla d\'inici i busca la icona <strong>' + name + '</strong>.',
+        'Mantén premut sobre la icona uns segons.',
+        'Tria <strong>"Eliminar app"</strong> i confirma <strong>"Esborrar app"</strong>.',
+      ];
+    } else if (plat.isAndroid) {
+      steps = [
+        'Ves a la pantalla d\'inici i busca la icona <strong>' + name + '</strong>.',
+        'Mantén premut sobre la icona.',
+        'Arrossega-la a <strong>"Desinstal·lar"</strong> a la part superior, o tria l\'opció <strong>"Desinstal·lar"</strong> que aparegui.',
+        'Confirma. Si et pregunta si vols eliminar les dades, <strong>marca-ho</strong>.',
+      ];
+    } else {
+      steps = [
+        'Obre <strong>l\'app instal·lada</strong> (la finestra independent amb la icona <strong>' + name + '</strong>, no el navegador).',
+        'Al menú dels tres punts <strong>⋮</strong> de l\'app, tria <strong>"Desinstal·lar ' + name + '..."</strong>.',
+        'Al diàleg de confirmació, <strong>marca la casella "Suprimeix les dades d\'aquesta aplicació de Chrome"</strong> per no deixar rastre de la disfressa al dispositiu.',
+        'Alternativa fiable: a la barra d\'adreces del navegador escriu <code>chrome://apps</code>, fes botó dret sobre la icona <strong>' + name + '</strong> i tria <strong>"Eliminar de Chrome..."</strong> (també amb la casella d\'esborrar dades).',
+      ];
+    }
+    body.innerHTML = [
+      '<h2>Desinstal·lar l\'app</h2>',
+      '<div class="stealth-install-preview">',
+      '  <img src="' + iconSrc + '" alt="" class="stealth-install-icon">',
+      '  <div class="stealth-install-name">' + name + '</div>',
+      '</div>',
+      '<p class="stealth-intro">Per eliminar l\'app del teu dispositiu:</p>',
+      '<ol class="stealth-steps">',
+      steps.map(function (s) { return '<li>' + s + '</li>'; }).join(''),
+      '</ol>',
+      '<p class="stealth-note"><strong>Important per al mode incògnit:</strong> sempre que puguis, marca l\'opció d\'<strong>esborrar dades</strong> al diàleg de desinstal·lació. Així no queda al dispositiu cap rastre que indiqui que tenies la disfressa activada.</p>',
+      '<p class="stealth-note stealth-note-info"><strong>Tranquil·la:</strong> esborrar les dades de l\'app no afecta la web. Podràs seguir consultant <strong>transitem.cat</strong> des del navegador.</p>',
+      '<div class="stealth-actions">',
+      '  <button class="stealth-btn-secondary" data-act="back">Enrere</button>',
+      '  <button class="stealth-btn-primary" data-act="ok">Entesos</button>',
+      '</div>',
+    ].join('');
+    body.querySelector('[data-act="back"]').addEventListener('click', showInstalledChangeIcon);
+    body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
+  }
+
+  // Variant del pas 2 quan ja està instal·lada: en triar, no fem reload+prompt,
+  // sinó que ensenyem com desinstal·lar i reinstal·lar.
+  function showStep2Reinstall() {
+    var body = ensureModal();
+    var current = (window.Stealth && window.Stealth.current && window.Stealth.current()) || null;
+    // Inclou opció "Sense disfressa (Transitem)" per poder tornar al normal
+    var defaultActive = !current ? ' is-active' : '';
+    var defaultOpt =
+      '<button class="stealth-opt' + defaultActive + '" data-key="">' +
+      '<div class="stealth-icon stealth-icon-default"></div>' +
+      '<span>Transitem<small>(normal)</small></span></button>';
+    var grid = Object.keys(DISGUISES).map(function (k) {
+      var d = DISGUISES[k];
+      var active = (k === current) ? ' is-active' : '';
+      return '<button class="stealth-opt' + active + '" data-key="' + k + '">' +
+        '<img class="stealth-icon" src="' + BASE + d.icon + '" alt="">' +
+        '<span>' + d.label + '</span></button>';
+    }).join('');
+    body.innerHTML = [
+      '<h2>Tria la nova icona</h2>',
+      '<p class="stealth-intro">Tria la icona que vols a partir d\'ara.</p>',
+      '<div class="stealth-grid">', defaultOpt, grid, '</div>',
+      '<div class="stealth-actions">',
+      '  <button class="stealth-btn-secondary" data-act="back">Enrere</button>',
+      '</div>',
+    ].join('');
+    body.querySelectorAll('.stealth-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-key') || null;
+        showReinstallInstructions(key);
+      });
+    });
+    body.querySelector('[data-act="back"]').addEventListener('click', showInstalledChangeIcon);
+  }
+
+  function showReinstallInstructions(newKey) {
+    var body = ensureModal();
+    var plat = detectPlatform();
+    var iconSrc = newKey ? (BASE + DISGUISES[newKey].icon) : 'imatges/icon-192.png?v=1';
+    var name = newKey ? DISGUISES[newKey].label : 'Transitem';
+    var uninstallSteps;
+    if (plat.isIOS) {
+      uninstallSteps = [
+        'A la pantalla d\'inici, mantén premut sobre la icona actual.',
+        'Tria <strong>"Eliminar app"</strong> i confirma.',
+      ];
+    } else if (plat.isAndroid) {
+      uninstallSteps = [
+        'A la pantalla d\'inici, mantén premut sobre la icona actual.',
+        'Tria <strong>"Desinstal·lar"</strong> o arrossega-la a la paperera de "Desinstal·lar".',
+        'Si et pregunta si vols eliminar les dades, <strong>marca-ho</strong> per no deixar rastre.',
+      ];
+    } else {
+      uninstallSteps = [
+        'Obre <strong>l\'app instal·lada</strong> (la finestra independent amb la icona, no el navegador).',
+        'Al menú dels tres punts <strong>⋮</strong> de l\'app, tria <strong>"Desinstal·lar [nom de l\'app]..."</strong>.',
+        'Al diàleg de confirmació, <strong>marca la casella "Suprimeix les dades d\'aquesta aplicació"</strong>.',
+        'Alternativa fiable: a la barra d\'adreces escriu <code>chrome://apps</code>, fes botó dret sobre la icona i tria <strong>"Eliminar de Chrome..."</strong> (també amb la casella d\'esborrar dades).',
+      ];
+    }
+    body.innerHTML = [
+      '<h2>Per canviar la icona</h2>',
+      '<p class="stealth-intro">Per motius de seguretat dels navegadors, no es pot canviar la icona d\'una app instal·lada. Cal <strong>desinstal·lar-la i tornar-la a instal·lar</strong>.</p>',
+      '<div class="stealth-install-preview">',
+      '  <img src="' + iconSrc + '" alt="" class="stealth-install-icon">',
+      '  <div class="stealth-install-name">Nova: ' + name + '</div>',
+      '</div>',
+      '<h3 class="stealth-h3">1. Desinstal·la l\'app actual</h3>',
+      '<ol class="stealth-steps">',
+      uninstallSteps.map(function (s) { return '<li>' + s + '</li>'; }).join(''),
+      '</ol>',
+      '<h3 class="stealth-h3">2. Torna aquí des del navegador</h3>',
+      '<p class="stealth-intro">Obre transitem.cat al navegador, ves a Configuració → "Afegir a l\'escriptori" i prem "Instal·lar". Et tornarà a preguntar si vols mode incògnit.</p>',
+      '<p class="stealth-note"><strong>Pista:</strong> guarda la teva tria <em>(' + name + ')</em> per recordar-la quan tornis.</p>',
+      '<div class="stealth-actions">',
+      '  <button class="stealth-btn-primary" data-act="ok">Entesos</button>',
+      '</div>',
+    ].join('');
+    body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
+  }
+
   // ── PAS 1 ─────────────────────────────────────
   function showStep1() {
     var body = ensureModal();
@@ -155,7 +319,7 @@
       '  <img src="' + iconSrc + '" alt="" class="stealth-install-icon">',
       '  <div class="stealth-install-name">' + name + '</div>',
       '</div>',
-      '<p class="stealth-intro">Premsa el botó per instal·lar l\'app. El navegador et demanarà confirmació.</p>',
+      '<p class="stealth-intro">Prem el botó per instal·lar l\'app. El navegador et demanarà confirmació.</p>',
       '<div class="stealth-actions">',
       '  <button class="stealth-btn-primary" data-act="install">Instal·lar ara</button>',
       '  <button class="stealth-btn-secondary" data-act="manual">Veure instruccions manuals</button>',
@@ -238,7 +402,13 @@
 
   // ── Inici ─────────────────────────────────────
   function start() {
-    showStep1();
+    var st = window.SharedInstall && window.SharedInstall.getState();
+    if (st && (st.installed || st.isStandalone)) {
+      // Ja instal·lada: oferim canviar la icona en lloc de re-instal·lar
+      showInstalledChangeIcon();
+    } else {
+      showStep1();
+    }
   }
 
   // Auto-resume després de reload (després de pas 2 o canvi a "normal")

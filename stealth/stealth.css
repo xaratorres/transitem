@@ -6,12 +6,12 @@
 }
 .stealth-dialog {
   background: #fff; color: #111;
-  max-width: 480px; width: 100%;
+  max-width: 760px; width: 100%;
   border-radius: 16px;
-  padding: 24px 20px 20px;
+  padding: 24px 28px 20px;
   position: relative;
   font-family: Inter, system-ui, -apple-system, sans-serif;
-  max-height: 90vh; overflow-y: auto;
+  max-height: 92vh; overflow-y: auto;
 }
 .stealth-dialog h2 { margin: 0 0 8px; font-size: 1.25rem; }
 .stealth-intro { margin: 0 0 16px; font-size: 0.9rem; color: #555; line-height: 1.4; }
@@ -57,6 +57,8 @@
   background: #fef9c3; padding: 10px 12px; border-radius: 8px; line-height: 1.4;
 }
 .stealth-note strong { color: #92400e; }
+.stealth-note.stealth-note-info { background: #e0f2fe; color: #075985; }
+.stealth-note.stealth-note-info strong { color: #0c4a6e; }
 
 .stealth-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .stealth-btn-primary, .stealth-btn-secondary {
@@ -72,6 +74,8 @@
 
 .stealth-steps { margin: 8px 0 16px; padding-left: 22px; font-size: 0.9rem; line-height: 1.5; color: #333; }
 .stealth-steps li { margin-bottom: 8px; }
+.stealth-h3 { font-size: 0.95rem; margin: 14px 0 6px; color: #111; }
+.stealth-dialog code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
 
 .stealth-install-preview {
   display: flex; align-items: center; gap: 12px;
@@ -98,4 +102,8 @@
   .stealth-btn-secondary:hover { background: #4b5563; }
   .stealth-steps { color: #d1d5db; }
   .stealth-install-preview { background: #111827; }
+  .stealth-h3 { color: #f3f4f6; }
+  .stealth-dialog code { background: #374151; color: #f3f4f6; }
+  .stealth-note.stealth-note-info { background: #082f49; color: #bae6fd; }
+  .stealth-note.stealth-note-info strong { color: #7dd3fc; }
 }

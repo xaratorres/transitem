@@ -3,8 +3,23 @@
 // Lògica completa a /shared/js/sw-template.js (importScripts).
 importScripts('./shared/js/sw-template.js');
 
+// Bypass del SW per a tots els recursos de la capa stealth.
+// Aquestes icones canvien quan l'usuari tria disfressa (i les regenerem).
+// Si el SW les cacheja, Chrome agafa versions antigues quan instal·la la PWA
+// i la icona a l'escriptori queda desactualitzada. Anant directes a network,
+// el query string ?v=N garanteix versions fresques.
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  try {
+    const url = new URL(e.request.url);
+    if (url.origin === self.location.origin && url.pathname.startsWith('/stealth/')) {
+      e.respondWith(fetch(e.request));
+    }
+  } catch (_) {}
+});
+
 buildSW({
-  cacheName: 'transitem-v11',
+  cacheName: 'transitem-v12',
 
   // Fitxers que canvien sovint → network-first amb timeout 2.5s
   core: [

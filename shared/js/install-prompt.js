@@ -90,6 +90,11 @@
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
+    // Si Chrome dispara beforeinstallprompt vol dir que l'app NO està
+    // instal·lada al sistema. Si el nostre flag local diu "instal·lada", és
+    // incoherent (probablement l'usuari l'ha desinstal·lada des del SO).
+    // Sincronitzem l'estat per no enganyar la UI.
+    if (readStored() && !isStandalone) writeStored(false);
     emit();
   });
 

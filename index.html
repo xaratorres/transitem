@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover">
-  <link rel="manifest" href="manifest.json">
+  <!-- El <link rel="manifest"> es crea via stealth/stealth.js (sota) per evitar
+       que el navegador pre-llegeixi un manifest abans que la capa stealth pugui
+       substituir-lo amb el de la disfressa triada. -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
+
   <meta name="theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3146,13 +3150,13 @@
       // Botó SEMPRE visible (excepte si ja està instal·lada/standalone, llavors el deixem
       // perquè el flux li dirà que ja la té). El flux multipas StealthInstall s'ocupa de tot.
       installBtn.style.display = '';
-      installBtn.textContent = state.installed || state.isStandalone ? 'Ja instal·lada' : 'Instal·lar';
+      installBtn.textContent = state.installed || state.isStandalone ? 'Canviar o desinstal·lar' : 'Instal·lar';
 
       // Hint segons estat
       if (state.isStandalone) {
-        installHint.textContent = "Ja estàs fent servir l'app instal·lada.";
+        installHint.textContent = "Ja estàs fent servir l'app instal·lada. Pots canviar la icona o desinstal·lar-la.";
       } else if (state.installed) {
-        installHint.innerHTML = 'Ja tens Transitem instal·lada. Obre-la des de l\'escriptori.';
+        installHint.innerHTML = "Ja tens Transitem instal·lada. Pots canviar la icona o desinstal·lar-la.";
       } else {
         installHint.textContent = "Instal·la l'app per accedir-hi des del teu dispositiu. Pots triar mode incògnit per camuflar la icona.";
       }
