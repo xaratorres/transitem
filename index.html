@@ -1003,13 +1003,21 @@
 
     /* ── Fitxa (modal detall) ── */
     #fitxa-modal { padding-top: 0; }
+    /* Capçalera enganxada a dalt: l'usuari sempre veu nom, tipus i la X
+       mentre fa scroll pel contingut (per a què, ofereix, contacte…). */
     .fitxa-head {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--bg);
       border-bottom: 1px solid var(--border);
       padding: 1.6rem 1.8rem 1rem;
       border-top: 6px solid var(--tipcolor);
       border-radius: 14px 14px 0 0;
       margin: -1.6rem -1.8rem 0;
     }
+    html.dark .fitxa-head { background: var(--bg); }
+    .fitxa-head .modal-close { top: 0.6rem; right: 0.6rem; }
     .fitxa-tipus {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 0.7rem; font-weight: 700;
@@ -1409,9 +1417,6 @@
   <!-- ─── OVERLAY FITXA ──────────────────────── -->
   <div id="overlay-fitxa" class="overlay">
     <div class="modal" id="fitxa-modal">
-      <button class="modal-close" data-close="overlay-fitxa" aria-label="Tanca">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
       <div id="fitxa-content"></div>
     </div>
   </div>
@@ -1824,6 +1829,9 @@
 
       let html = `
         <div class="fitxa-head" style="--tipcolor:${tipcolor}">
+          <button class="modal-close" data-close="overlay-fitxa" aria-label="Tanca">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
           <div class="fitxa-tipus">${meta.nom} · ${teri ? teri.nom : ''}</div>
           <div class="fitxa-nom">${escHtml(r.nom)}</div>
           <div class="fitxa-ambit">${escHtml(r.ambit || '')}</div>
@@ -1867,6 +1875,9 @@
       </button>`;
       html += `</div>`;
       content.innerHTML = html;
+      // Wire de la creu de tancar (afegida dinàmicament dins de fitxa-head)
+      const closeBtn = content.querySelector('[data-close="overlay-fitxa"]');
+      if (closeBtn) closeBtn.addEventListener('click', () => window.SharedOverlay && SharedOverlay.close('overlay-fitxa'));
       // Wire del botó compartir (després d'injectar HTML)
       const shareBtn = content.querySelector('.fitxa-share');
       if (shareBtn) shareBtn.addEventListener('click', async () => {
