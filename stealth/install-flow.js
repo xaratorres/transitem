@@ -210,8 +210,10 @@
       '<ol class="stealth-steps">',
       uninstallSteps.map(function (s) { return '<li>' + s + '</li>'; }).join(''),
       '</ol>',
-      '<h3 class="stealth-h3">2. Torna aquí des del navegador</h3>',
-      '<p class="stealth-intro">Obre transitem.cat al navegador, ves a Configuració → "Afegir a l\'escriptori" i prem "Instal·lar". Et tornarà a preguntar si vols mode incògnit.</p>',
+      '<h3 class="stealth-h3">2. Torna al navegador i <em>recarrega la pàgina</em></h3>',
+      '<p class="stealth-intro">Obre transitem.cat al navegador i <strong>recarrega-la</strong> (botó de refresc o tirant cap avall a mòbil). Aquest pas és <strong>imprescindible</strong>: sense recarregar, el navegador encara té la icona antiga a la memòria cau i tornaria a instal·lar la mateixa.</p>',
+      '<h3 class="stealth-h3">3. Reinstal·la l\'app</h3>',
+      '<p class="stealth-intro">Un cop recarregada, ves a Configuració → "Afegir a l\'escriptori" i prem "Instal·lar". Et tornarà a preguntar si vols mode incògnit.</p>',
       '<p class="stealth-note"><strong>Pista:</strong> guarda la teva tria <em>(' + name + ')</em> per recordar-la quan tornis.</p>',
       '<div class="stealth-actions">',
       '  <button class="stealth-btn-primary" data-act="ok">Entesos</button>',
@@ -347,7 +349,7 @@
       '<p class="stealth-intro">L\'app Transitem ja està al teu dispositiu.',
       current ? ' La icona actual és <strong>' + DISGUISES[current].label + '</strong>.' : '',
       '</p>',
-      '<p class="stealth-note"><strong>Per canviar la icona:</strong> desinstal·la l\'app del dispositiu i torna a fer aquest procés triant una altra opció.</p>',
+      '<p class="stealth-note"><strong>Per canviar la icona:</strong> desinstal·la l\'app del dispositiu, <strong>recarrega aquesta pàgina al navegador</strong> per netejar la memòria cau, i torna a instal·lar triant una altra opció. Sense la recàrrega, el navegador faria servir la icona antiga.</p>',
       '<div class="stealth-actions"><button class="stealth-btn-primary" data-act="ok">Entesos</button></div>',
     ].join('');
     body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
