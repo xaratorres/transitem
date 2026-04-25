@@ -42,8 +42,11 @@
   <!-- Força l'inici a la vista "llista" abans que cap codi llegeixi la clau. -->
   <script src="./shared/js/start-home.js"></script>
   <script>SharedStartHome && SharedStartHome.forceStartView({ key: 'transitem-vista', homeValue: 'llista' });</script>
-  <!-- Brand clicable: "tornar a inici" des del títol de la topbar. -->
-  <script src="./shared/js/brand-home.js" defer></script>
+  <!-- Brand clicable: "tornar a inici" des del títol de la topbar.
+       SENSE `defer` perquè la crida a SharedBrandHome.attach es fa des d'un
+       <script> inline al body i defer faria que el helper encara no estigui
+       definit en aquell punt. -->
+  <script src="./shared/js/brand-home.js"></script>
 
   <!-- Config del projecte (usat pels mòduls de /shared/) -->
   <script src="./app.config.js"></script>
