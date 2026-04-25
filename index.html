@@ -1576,7 +1576,12 @@
           ? 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
           : 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover');
       }
-      if (v === 'mapa') initMap();
+      if (v === 'mapa') {
+        initMap();
+        // En entrar a mapa, sincronitza el banner d'avís de filtres actius
+        // (l'usuari pot venir d'Ajuda'm o del llistat amb filtres aplicats).
+        if (typeof updateMapFilterBanner === 'function') updateMapFilterBanner();
+      }
     }
 
     // ─── Splash → shared/js/splash.js ──────────
