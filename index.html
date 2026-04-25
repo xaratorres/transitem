@@ -935,6 +935,7 @@
     /* Capçalera enganxada a dalt del modal: títol + comptador + lead sempre
        visibles mentre l'usuari fa scroll per les preguntes. La X tancar
        viu dins per quedar enganxada també. */
+    #overlay-ajudam .modal { overscroll-behavior: contain; }
     .ajudam-sticky-head {
       position: sticky;
       top: -1.6rem;             /* anul·la el padding-top del modal */
@@ -1002,7 +1003,11 @@
     }
 
     /* ── Fitxa (modal detall) ── */
-    #fitxa-modal { padding-top: 0; }
+    /* Padding-top 0: la capçalera ja inclou el seu propi espai i el filet
+       de color superior. overscroll-behavior: contain evita que, en arribar
+       al final del scroll del modal, el gest passi a la pàgina del darrere
+       (el problema "es queda en pausa" descrit per l'usuari). */
+    #fitxa-modal { padding-top: 0; overscroll-behavior: contain; }
     /* Capçalera enganxada a dalt: l'usuari sempre veu nom, tipus i la X
        mentre fa scroll pel contingut (per a què, ofereix, contacte…). */
     .fitxa-head {
@@ -1011,10 +1016,13 @@
       z-index: 5;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
-      padding: 1.6rem 1.8rem 1rem;
+      padding: 1.2rem 1.8rem 1rem;
       border-top: 6px solid var(--tipcolor);
       border-radius: 14px 14px 0 0;
-      margin: -1.6rem -1.8rem 0;
+      /* Sense margin-top negatiu: amb padding-top:0 al modal, no cal absorbir
+         res. Abans això feia que el filet blau quedés per sobre del modal
+         (zona blava estranya). */
+      margin: 0 -1.8rem 0;
     }
     html.dark .fitxa-head { background: var(--bg); }
     .fitxa-head .modal-close { top: 0.6rem; right: 0.6rem; }
