@@ -818,6 +818,35 @@
     }
     .mapa-filter-clear:hover { background: rgba(255,255,255,0.4); }
     .mapa-filter-clear svg { width: 12px; height: 12px; display: block; }
+    /* Llista de recursos no visibles al mapa (sense coord o "Més enllà"):
+       chips clicables sota el banner. */
+    .mapa-offmap-list {
+      position: absolute;
+      top: 56px; left: 12px; right: 12px;
+      z-index: 499;
+      display: flex; flex-wrap: wrap; gap: 6px;
+      max-height: 30vh; overflow-y: auto;
+      pointer-events: auto;
+    }
+    .mapa-offmap-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--tipcolor, var(--ink-3));
+      border-radius: 100px;
+      font-size: 0.78rem;
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .mapa-offmap-chip:hover { background: var(--bg-soft); }
+    html.dark .mapa-offmap-chip { background: rgba(28,28,30,0.95); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); }
+    @media (max-width: 720px) {
+      .mapa-offmap-list { top: 46px; left: 8px; right: 8px; }
+      .mapa-offmap-chip { font-size: 0.72rem; padding: 4px 8px; }
+    }
     @media (max-width: 720px) {
       .mapa-filter-banner {
         top: 8px; left: 56px; right: 8px;
@@ -1363,11 +1392,15 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg>
       </button>
       <div class="mapa-filter-banner" id="mapa-filter-banner" style="display:none">
-        <span class="mapa-filter-text"><span id="mapa-filter-count">0</span> recursos amb el filtre actiu</span>
+        <span class="mapa-filter-text">recursos amb el filtre actiu</span>
         <button class="mapa-filter-clear" id="mapa-filter-clear" type="button" aria-label="Treu els filtres">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
+      <!-- Llista de recursos sense coord visible al mapa (territori "Més enllà"
+           o entitats sense ubicació). Apareix sota el banner perquè l'usuari
+           pugui clicar-los igualment. -->
+      <div class="mapa-offmap-list" id="mapa-offmap-list" style="display:none"></div>
       <div class="mapa-legend" aria-hidden="true">
         <div class="mapa-legend-title">Tipus</div>
         <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#0284C7"></span>Administració</div>
@@ -1800,10 +1833,45 @@
       if (activeServei) labels.push((SERVEIS_META && SERVEIS_META[activeServei]?.nom) || activeServei);
       if (q.length >= 2) labels.push('"' + q + '"');
       const filterTxt = labels.length ? ' · ' + labels.join(' · ') : '';
-      byId('mapa-filter-count').textContent = count;
-      banner.querySelector('.mapa-filter-text').innerHTML =
-        `<strong>${count}</strong> ${count === 1 ? 'recurs' : 'recursos'} amb filtre${filterTxt}`;
+      // Tot el text dins de .mapa-filter-text. Abans actualitzàvem #mapa-filter-count
+      // i després feiem innerHTML del wrapper, però el wrapper conté el span del count
+      // i la primera substitució el destruïa: cada actualització posterior llançava
+      // perquè byId('mapa-filter-count') era null. Resultat visible: el banner es
+      // quedava amb el text del primer filtre i no s'actualitzava mai més.
+      const txt = banner.querySelector('.mapa-filter-text');
+      if (txt) txt.innerHTML = `<strong>${count}</strong> ${count === 1 ? 'recurs' : 'recursos'} amb filtre${filterTxt}`;
       banner.style.display = 'flex';
+      updateOffMapList();
+    }
+    // Llista de recursos que no tenen coord o queden fora del mapa (com els de
+    // "Més enllà"): es mostren com a chips clicables sota el banner. Així els
+    // usuaris veuen que existeixen i poden obrir-ne la fitxa, en comptes de
+    // veure el mapa buit i pensar que no hi ha res.
+    function updateOffMapList() {
+      const host = byId('mapa-offmap-list');
+      if (!host) return;
+      const q = (typeof searchQuery === 'string' ? searchQuery : '').trim();
+      const anyFilter = activeTipus !== null || activeTerritori !== null
+        || activePublic !== null || activeServei !== null || q.length >= 2;
+      if (!anyFilter) { host.style.display = 'none'; host.innerHTML = ''; return; }
+      const matched = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q));
+      // Recursos sense coord o amb coord fora dels PPCC (no es renderitzen al mapa).
+      const offmap = matched.filter(r => {
+        if (!r.coord) return true;
+        const [lat, lon] = r.coord;
+        return !(lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
+          && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1]);
+      });
+      if (!offmap.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
+      host.innerHTML = offmap.slice(0, 12).map(r => {
+        const color = (TIPUS_META[r.tipus] || {}).color || 'var(--ink-3)';
+        return `<button type="button" class="mapa-offmap-chip" data-id="${escHtml(r.id)}" style="--tipcolor:${color}">${escHtml(r.nom)}</button>`;
+      }).join('');
+      host.style.display = 'flex';
+      host.querySelectorAll('.mapa-offmap-chip').forEach(b => b.addEventListener('click', () => {
+        byId('overlay-fitxa').classList.add('open');
+        openFitxa(b.dataset.id);
+      }));
     }
     // Reposicionar mapa: torna a la vista inicial (treu ubicació si n'hi ha)
     byId('mapa-btn-reset')?.addEventListener('click', () => {
