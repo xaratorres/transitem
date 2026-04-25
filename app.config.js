@@ -61,7 +61,8 @@ window.APP_CONFIG = {
     projectLabel: 'Transitem',
     accentColor: 'var(--pink-ink)',
     description: 'Ens pots escriure per consultes, correccions, aportacions (afegir entitats, corregir dades…) o per exercir els drets RGPD. Responem amb discreció i confidencialitat.',
-    devMode: false
+    devMode: true,
+    devModeNotice: '<div class="contact-notice"><strong>Formulari en fase de desenvolupament.</strong> Aquest canal encara no és operatiu. Mentrestant, escriu-nos a <a href="mailto:rerumscriptor@gmail.com">rerumscriptor@gmail.com</a>.</div>'
   },
 
   install: {
