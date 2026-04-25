@@ -3214,7 +3214,14 @@
             return;
           }
           const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
-          if (marker) marker.openPopup();
+          if (!marker) return;
+          // Toggle: si el popup d'aquest marker ja està obert, el tanquem.
+          // Així el botó funciona com un interruptor (seleccionar/deseleccionar).
+          if (marker.isPopupOpen && marker.isPopupOpen()) {
+            marker.closePopup();
+          } else {
+            marker.openPopup();
+          }
         });
       });
     }
