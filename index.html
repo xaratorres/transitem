@@ -16,6 +16,13 @@
   <link rel="icon" type="image/png" sizes="192x192" href="imatges/icon-192.png?v=1">
   <link rel="icon" type="image/png" sizes="512x512" href="imatges/icon-512.png?v=1">
 
+  <!-- Stealth: capa de disfressa d'icona+nom (autocontinguda, no /shared/). Sync, abans del primer paint. -->
+  <link rel="stylesheet" href="./stealth/stealth.css">
+  <link rel="stylesheet" href="./stealth/loader.css">
+  <script src="./stealth/stealth.js"></script>
+  <script src="./stealth/loader.js"></script>
+  <script src="./stealth/install-flow.js" defer></script>
+
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
 
@@ -1376,7 +1383,7 @@
           <div class="config-row-label">
             <span id="install-hint">Instal·la l'app per accedir-hi directament des del teu dispositiu.</span>
           </div>
-          <button class="config-btn primary" id="btn-install" style="display:none">Instal·lar</button>
+          <button class="config-btn primary" id="btn-install">Instal·lar</button>
         </div>
       </div>
 
@@ -3134,25 +3141,23 @@
     const installHint = byId('install-hint');
 
     function renderInstallUI(state) {
-      // Botó: visible només quan tenim deferredPrompt (Android Chrome/Edge)
-      installBtn.style.display = state.hasDeferredPrompt && !state.installed ? '' : 'none';
+      // Botó SEMPRE visible (excepte si ja està instal·lada/standalone, llavors el deixem
+      // perquè el flux li dirà que ja la té). El flux multipas StealthInstall s'ocupa de tot.
+      installBtn.style.display = '';
+      installBtn.textContent = state.installed || state.isStandalone ? 'Ja instal·lada' : 'Instal·lar';
 
       // Hint segons estat
       if (state.isStandalone) {
         installHint.textContent = "Ja estàs fent servir l'app instal·lada.";
       } else if (state.installed) {
         installHint.innerHTML = 'Ja tens Transitem instal·lada. Obre-la des de l\'escriptori.';
-      } else if (state.isIOS) {
-        installHint.innerHTML = 'A iPhone/iPad: toca <strong>compartir</strong> i selecciona <em>"Afegir a la pantalla d\'inici"</em>.';
-      } else if (state.hasDeferredPrompt) {
-        installHint.textContent = "Instal·la l'app per accedir-hi directament des del teu dispositiu.";
       } else {
-        installHint.innerHTML = 'Obre el menú del navegador (⋮) i selecciona <em>«Instal·lar aplicació»</em>.';
+        installHint.textContent = "Instal·la l'app per accedir-hi des del teu dispositiu. Pots triar mode incògnit per camuflar la icona.";
       }
     }
 
     document.addEventListener('install:state-change', e => renderInstallUI(e.detail));
-    installBtn.addEventListener('click', () => window.SharedInstall && window.SharedInstall.prompt());
+    installBtn.addEventListener('click', () => window.StealthInstall && window.StealthInstall.start());
 
     // Render inicial (en cas que l'estat ja s'hagi emès abans del listener)
     if (window.SharedInstall) renderInstallUI(window.SharedInstall.getState());

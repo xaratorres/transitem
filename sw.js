@@ -4,7 +4,7 @@
 importScripts('./shared/js/sw-template.js');
 
 buildSW({
-  cacheName: 'transitem-v10',
+  cacheName: 'transitem-v11',
 
   // Fitxers que canvien sovint → network-first amb timeout 2.5s
   core: [

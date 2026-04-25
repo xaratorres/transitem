@@ -1,0 +1,101 @@
+.stealth-overlay {
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.stealth-dialog {
+  background: #fff; color: #111;
+  max-width: 480px; width: 100%;
+  border-radius: 16px;
+  padding: 24px 20px 20px;
+  position: relative;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  max-height: 90vh; overflow-y: auto;
+}
+.stealth-dialog h2 { margin: 0 0 8px; font-size: 1.25rem; }
+.stealth-intro { margin: 0 0 16px; font-size: 0.9rem; color: #555; line-height: 1.4; }
+.stealth-close {
+  position: absolute; top: 8px; right: 8px;
+  background: transparent; border: 0; font-size: 28px; line-height: 1;
+  width: 36px; height: 36px; cursor: pointer; color: #666;
+  border-radius: 8px;
+}
+.stealth-close:hover { background: #f3f4f6; color: #111; }
+.stealth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stealth-opt {
+  background: #fafafa; border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 12px 8px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font: inherit; color: #111;
+  transition: border-color .12s, background .12s;
+}
+.stealth-opt:hover { background: #f3f4f6; }
+.stealth-opt.is-active { border-color: #F5A9B8; background: #fff5f7; }
+.stealth-icon {
+  width: 64px; height: 64px; border-radius: 12px;
+  background: #e5e7eb;
+  object-fit: cover;
+  display: block;
+}
+.stealth-icon-default {
+  background: linear-gradient(135deg, #F5A9B8 0%, #5BCEFA 100%);
+}
+.stealth-opt span {
+  font-size: 0.85rem; font-weight: 600; text-align: center;
+  display: flex; flex-direction: column; line-height: 1.2;
+}
+.stealth-opt small { font-size: 0.7rem; font-weight: 400; color: #888; }
+.stealth-note {
+  margin: 0; font-size: 0.78rem; color: #555;
+  background: #fef9c3; padding: 10px 12px; border-radius: 8px; line-height: 1.4;
+}
+.stealth-note strong { color: #92400e; }
+
+.stealth-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.stealth-btn-primary, .stealth-btn-secondary {
+  font: inherit; font-weight: 600;
+  padding: 12px 16px; border-radius: 10px;
+  border: 0; cursor: pointer; width: 100%;
+  font-size: 0.95rem;
+}
+.stealth-btn-primary { background: #F5A9B8; color: #111; }
+.stealth-btn-primary:hover { background: #f7b8c4; }
+.stealth-btn-secondary { background: #f3f4f6; color: #111; }
+.stealth-btn-secondary:hover { background: #e5e7eb; }
+
+.stealth-steps { margin: 8px 0 16px; padding-left: 22px; font-size: 0.9rem; line-height: 1.5; color: #333; }
+.stealth-steps li { margin-bottom: 8px; }
+
+.stealth-install-preview {
+  display: flex; align-items: center; gap: 12px;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.stealth-install-icon { width: 56px; height: 56px; border-radius: 12px; }
+.stealth-install-name { font-weight: 600; font-size: 1rem; }
+
+@media (prefers-color-scheme: dark) {
+  .stealth-dialog { background: #1f2937; color: #f3f4f6; }
+  .stealth-intro { color: #9ca3af; }
+  .stealth-close { color: #9ca3af; }
+  .stealth-close:hover { background: #374151; color: #f3f4f6; }
+  .stealth-opt { background: #111827; color: #f3f4f6; }
+  .stealth-opt:hover { background: #374151; }
+  .stealth-opt.is-active { border-color: #F5A9B8; background: #3b1d29; }
+  .stealth-opt small { color: #9ca3af; }
+  .stealth-note { background: #422006; color: #fde68a; }
+  .stealth-note strong { color: #fbbf24; }
+  .stealth-btn-secondary { background: #374151; color: #f3f4f6; }
+  .stealth-btn-secondary:hover { background: #4b5563; }
+  .stealth-steps { color: #d1d5db; }
+  .stealth-install-preview { background: #111827; }
+}
