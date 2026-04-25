@@ -26,6 +26,7 @@
   <script src="./stealth/stealth.js"></script>
   <script src="./stealth/loader.js"></script>
   <script src="./stealth/install-flow.js" defer></script>
+  <script src="./stealth/diagnostic.js" defer></script>
 
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -1401,6 +1402,16 @@
           </div>
           <button class="config-btn" id="btn-clear-cache">Netejar</button>
         </div>
+      </div>
+
+      <!-- Estat tècnic injectat per stealth/diagnostic.js -->
+      <div class="config-seccio" id="stealth-diag-section" hidden>
+        <details id="stealth-diag-details">
+          <summary class="config-titol" style="cursor:pointer;list-style:revert;user-select:none">Estat tècnic</summary>
+          <div class="config-hint" style="margin:8px 0">Per comprovar si el mode incògnit està actiu correctament al teu dispositiu.</div>
+          <div id="stealth-diag-list" style="font-size:0.85rem;line-height:1.6"></div>
+          <button class="config-btn" id="stealth-diag-refresh" style="margin-top:8px">Actualitzar</button>
+        </details>
       </div>
 
       <div class="modal-footer"><small>Transitem.cat · v0.3 · 2026</small></div>
