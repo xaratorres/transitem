@@ -181,6 +181,9 @@
 
     /* .nav-btns + .nav-btn (+ variants .icon, .nav-icon) → shared/css/navbar.css */
     .nav-btn.active-filter { color: var(--pink-ink); border-color: var(--pink-ink); }
+    /* Botó de la barra superior en estat "encès" (interruptor: vista mapa activa). */
+    .nav-btn.active { background: linear-gradient(135deg, var(--blue), var(--pink)); color: #fff; border-color: transparent; }
+    html.dark .nav-btn.active { color: #fff; }
 
     #btn-ajudam {
       background: linear-gradient(90deg, var(--blue), var(--pink));
@@ -763,6 +766,64 @@
     .popup-muni { color: var(--ink-3); font-size: 0.78rem; margin-bottom: 6px; }
     .popup-btn { color: var(--pink-ink); font-weight: 600; font-size: 0.82rem; cursor: pointer; }
 
+    /* Botó de reposicionar el mapa (canta superior-esquerre, dins del mapa) */
+    .mapa-reset-btn {
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 500;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(6px);
+      color: var(--ink-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      transition: filter 0.15s, transform 0.05s;
+    }
+    .mapa-reset-btn:hover { color: var(--ink); filter: brightness(0.96); }
+    .mapa-reset-btn:active { transform: scale(0.94); }
+    .mapa-reset-btn svg { width: 18px; height: 18px; display: block; }
+    html.dark .mapa-reset-btn { background: rgba(28,28,30,0.95); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+
+    /* Banner de filtres actius sobre el mapa (sobre la part superior, centrat) */
+    .mapa-filter-banner {
+      position: absolute;
+      top: 12px; left: 60px; right: 12px;
+      z-index: 500;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px 6px 12px;
+      background: linear-gradient(90deg, rgba(123,192,232,0.95), rgba(245,169,184,0.95));
+      color: #fff;
+      border-radius: 100px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .mapa-filter-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mapa-filter-clear {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border: 0; border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .mapa-filter-clear:hover { background: rgba(255,255,255,0.4); }
+    .mapa-filter-clear svg { width: 12px; height: 12px; display: block; }
+    @media (max-width: 720px) {
+      .mapa-filter-banner {
+        top: 8px; left: 56px; right: 8px;
+        font-size: 0.72rem;
+        padding: 5px 6px 5px 10px;
+      }
+      .mapa-reset-btn { top: 8px; left: 8px; width: 34px; height: 34px; }
+    }
+
     /* Llegenda del mapa (dins del mapa-container, al cantó superior-dret sobre el mar) */
     .mapa-legend {
       position: absolute;
@@ -1265,6 +1326,15 @@
       </div>
     </aside>
     <div id="mapa-container">
+      <button class="mapa-reset-btn" id="mapa-btn-reset" type="button" title="Reposicionar el mapa" aria-label="Reposicionar el mapa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg>
+      </button>
+      <div class="mapa-filter-banner" id="mapa-filter-banner" style="display:none">
+        <span class="mapa-filter-text"><span id="mapa-filter-count">0</span> recursos amb el filtre actiu</span>
+        <button class="mapa-filter-clear" id="mapa-filter-clear" type="button" aria-label="Treu els filtres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
       <div class="mapa-legend" aria-hidden="true">
         <div class="mapa-legend-title">Tipus</div>
         <div class="mapa-legend-row"><span class="mapa-legend-dot" style="background:#0284C7"></span>Administració</div>
@@ -1471,8 +1541,12 @@
       document.body.classList.toggle('vista-llista', v === 'llista');
       const btn = byId('btn-vista');
       if (btn) {
-        btn.innerHTML = v === 'mapa' ? ICON_VIEW_LIST : ICON_VIEW_MAP;
-        btn.setAttribute('title', v === 'mapa' ? 'Veure com a llista' : 'Veure com a mapa');
+        // Sempre la mateixa icona (mapa). El botó es comporta com un
+        // interruptor: encès = vista mapa activa, apagat = som a inici.
+        btn.innerHTML = ICON_VIEW_MAP;
+        btn.classList.toggle('active', v === 'mapa');
+        btn.setAttribute('aria-pressed', v === 'mapa' ? 'true' : 'false');
+        btn.setAttribute('title', v === 'mapa' ? 'Tornar a inici' : 'Veure com a mapa');
       }
       if (v === 'mapa') initMap();
     }
@@ -1658,11 +1732,52 @@
     // Funció global: actualitza vista actual (llista o mapa)
     function renderAll() {
       renderLlista();
+      updateMapFilterBanner();
       if (map && document.body.classList.contains('vista-mapa')) {
         renderChoropleth();
         if (userLoc) updateResultList();
       }
     }
+
+    // Banner sobre el mapa que indica si hi ha filtres actius i el nº de
+    // recursos que hi encaixen, amb una X per netejar-los tot.
+    function updateMapFilterBanner() {
+      const banner = byId('mapa-filter-banner');
+      if (!banner) return;
+      const q = (typeof searchQuery === 'string' ? searchQuery : '').trim();
+      const anyFilter = activeTipus !== null || activeTerritori !== null
+        || activePublic !== null || activeServei !== null || q.length >= 2;
+      if (!anyFilter) { banner.style.display = 'none'; return; }
+      const count = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+      const labels = [];
+      if (activeTipus) labels.push(TIPUS_META[activeTipus]?.nom || activeTipus);
+      if (activeTerritori) labels.push(TERRITORI_META[activeTerritori]?.nom || activeTerritori);
+      if (activePublic) labels.push((PUBLICS_META && PUBLICS_META[activePublic]?.nom) || activePublic);
+      if (activeServei) labels.push((SERVEIS_META && SERVEIS_META[activeServei]?.nom) || activeServei);
+      if (q.length >= 2) labels.push('"' + q + '"');
+      const filterTxt = labels.length ? ' · ' + labels.join(' · ') : '';
+      byId('mapa-filter-count').textContent = count;
+      banner.querySelector('.mapa-filter-text').innerHTML =
+        `<strong>${count}</strong> ${count === 1 ? 'recurs' : 'recursos'} amb filtre${filterTxt}`;
+      banner.style.display = 'flex';
+    }
+    // Reposicionar mapa: torna a la vista inicial (treu ubicació si n'hi ha)
+    byId('mapa-btn-reset')?.addEventListener('click', () => {
+      if (userLoc) { clearUserLocation(); return; } // ja crida fitStaticView
+      if (map) { map.invalidateSize(); fitStaticView(); }
+    });
+    // Treure tots els filtres actius des del banner del mapa
+    byId('mapa-filter-clear')?.addEventListener('click', () => {
+      activeTipus = null;
+      activeTerritori = null;
+      activePublic = null;
+      activeServei = null;
+      searchQuery = '';
+      const sInp = byId('llista-search-input'); if (sInp) sInp.value = '';
+      renderAll();
+      if (typeof syncAjudamUI === 'function') syncAjudamUI();
+      if (typeof updateAjudamButton === 'function') updateAjudamButton();
+    });
 
     // ─── Fitxa (modal detall) ─────────────────
     const overlayFitxa = byId('overlay-fitxa');
@@ -3269,6 +3384,7 @@
     if (window.SharedBrandHome) {
       SharedBrandHome.attach({ selector: '.brand', onClick: () => setVista('llista') });
     }
+    updateMapFilterBanner();
     updateAjudamCount();
   })();
   </script>
