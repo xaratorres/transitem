@@ -1557,12 +1557,19 @@
       document.body.classList.toggle('vista-llista', v === 'llista');
       const btn = byId('btn-vista');
       if (btn) {
-        // Sempre la mateixa icona (mapa). El botó es comporta com un
-        // interruptor: encès = vista mapa activa, apagat = som a inici.
         btn.innerHTML = ICON_VIEW_MAP;
         btn.classList.toggle('active', v === 'mapa');
         btn.setAttribute('aria-pressed', v === 'mapa' ? 'true' : 'false');
         btn.setAttribute('title', v === 'mapa' ? 'Tornar a inici' : 'Veure com a mapa');
+      }
+      // A la vista mapa bloquegem el pinch-zoom de la pàgina (tothom intenta
+      // fer pinch i el que zoomava era tot el viewport, no el mapa). A la
+      // resta de vistes restaurem el comportament normal.
+      const meta = document.querySelector('meta[name="viewport"]');
+      if (meta) {
+        meta.setAttribute('content', v === 'mapa'
+          ? 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+          : 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover');
       }
       if (v === 'mapa') initMap();
     }
@@ -2029,6 +2036,11 @@
     let extraMarkers = [];
     let simpleLayers = {};         // alguer → L.GeoJSON
     let municipalLayers = {};      // cn/and → L.GeoJSON (choropleth municipal)
+    // Bounding box màxim de la vista del mapa (PPCC). Es passa al constructor
+    // de Leaflet (maxBounds) perquè ni el pan ni qualsevol setView/fitBounds
+    // surtin d'aquí. Cobreix Catalunya, PV, Balears, Franja, Carxe, CN,
+    // Andorra i l'Alguer amb un petit marge.
+    const PPCC_MAX_BOUNDS = [[36.5, -2.5], [43.5, 9.7]];
     let municipisFeatures = null;  // cache del GeoJSON convertit
     let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
     let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
@@ -2229,6 +2241,11 @@
         tap: false,
         zoomSnap: 0,
         zoomDelta: 0.25,
+        // Mai navegar fora dels Països Catalans, encara que un recurs estigui
+        // a Madrid o més enllà. Així evitem que l'usuari es perdi.
+        maxBounds: PPCC_MAX_BOUNDS,
+        maxBoundsViscosity: 1.0,
+        minZoom: 5,
       }).setView([40.9, 1.7], 6);
       L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('ICGC · INE · INSEE').addTo(map);
       map.getContainer().style.background = '#F8FAFC';
@@ -3089,8 +3106,16 @@
           const lat = parseFloat(el.dataset.lat);
           const lon = parseFloat(el.dataset.lon);
           if (isNaN(lat) || isNaN(lon)) return;
+          // Si el recurs és fora dels PPCC, no movem el mapa: obrim la fitxa.
+          // Mantenim la vista a l'àrea visible com va demanar l'usuari.
+          const inBounds = lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
+            && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1];
+          if (!inBounds) {
+            byId('overlay-fitxa').classList.add('open');
+            openFitxa(el.dataset.id);
+            return;
+          }
           map.setView([lat, lon], Math.max(map.getZoom(), 12), { animate: true });
-          // Busca el marker en aquestes coords i obre el seu popup
           const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
           if (marker) setTimeout(() => marker.openPopup(), 400);
         });
