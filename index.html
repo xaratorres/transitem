@@ -932,7 +932,21 @@
       60% { transform: translateX(-3px); }
       80% { transform: translateX(2px); }
     }
-    .ajudam-lead-wrap { position: relative; margin-top: -0.3rem; margin-bottom: 1.4rem; }
+    /* Capçalera enganxada a dalt del modal: títol + comptador + lead sempre
+       visibles mentre l'usuari fa scroll per les preguntes. La X tancar
+       viu dins per quedar enganxada també. */
+    .ajudam-sticky-head {
+      position: sticky;
+      top: -1.6rem;             /* anul·la el padding-top del modal */
+      z-index: 5;
+      background: var(--bg);
+      margin: -1.6rem -1.8rem 0.6rem;
+      padding: 1.4rem 1.8rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+    html.dark .ajudam-sticky-head { background: var(--bg); }
+    .ajudam-sticky-head .modal-close { top: 0.6rem; right: 0.6rem; }
+    .ajudam-lead-wrap { position: relative; margin-top: -0.1rem; margin-bottom: 0; }
     .ajudam-lead, .ajudam-zero-warn {
       font-size: 0.88rem;
       color: var(--ink-3);
@@ -1351,13 +1365,15 @@
   <!-- ─── OVERLAY AJUDA'M ────────────────────── -->
   <div id="overlay-ajudam" class="overlay">
     <div class="modal" id="ajudam-modal">
-      <button class="modal-close" data-close="overlay-ajudam" aria-label="Tanca">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-      <h2>Ajuda'm a trobar recursos <span class="ajudam-count" id="ajudam-count">0</span></h2>
-      <div class="ajudam-lead-wrap">
-        <p class="ajudam-zero-warn" id="ajudam-zero-warn">Amb aquests criteris no hi ha cap recurs. Prova de canviar la selecció.</p>
-        <p class="ajudam-lead">Respon el que vulguis. Les preguntes sense resposta no filtren.</p>
+      <div class="ajudam-sticky-head">
+        <button class="modal-close" data-close="overlay-ajudam" aria-label="Tanca">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <h2>Ajuda'm a trobar recursos <span class="ajudam-count" id="ajudam-count">0</span></h2>
+        <div class="ajudam-lead-wrap">
+          <p class="ajudam-zero-warn" id="ajudam-zero-warn">Amb aquests criteris no hi ha cap recurs. Prova de canviar la selecció.</p>
+          <p class="ajudam-lead">Respon el que vulguis. Quan surtis els filtres marcats es mantindran.</p>
+        </div>
       </div>
 
       <div class="ajudam-grup">
