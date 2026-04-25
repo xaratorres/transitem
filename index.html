@@ -1990,11 +1990,10 @@
       updateAjudamButton();
       syncAjudamChecks();
       renderAll();
-      // Si hi ha territori seleccionat, recentra el mapa
-      if (map && AJUDAM_STATE.territori && TERRITORI_META[AJUDAM_STATE.territori]) {
-        const tm = TERRITORI_META[AJUDAM_STATE.territori];
-        map.setView(tm.centre, tm.zoom);
-      }
+      // Abans aquí fèiem map.setView al centre del territori escollit, però
+      // això reposicionava el mapa de manera inesperada (especialment en
+      // entrar a Ajuda'm des de la pròpia vista mapa). Mantenim la posició
+      // actual: l'usuari només veu els marcadors filtrats sense moviment.
     }
 
     function syncAjudamChecks() {
