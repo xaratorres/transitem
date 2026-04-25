@@ -284,13 +284,15 @@
 
     .llista-search { position: relative; margin: 0.2rem 0 0.9rem; }
     .llista-search-ico {
-      position: absolute; left: 12px; top: 50%;
+      position: absolute; left: 14px; top: 50%;
       transform: translateY(-50%);
-      color: var(--ink-3); pointer-events: none;
+      width: 18px; height: 18px;
+      color: var(--pink-ink);
+      pointer-events: none;
     }
     .llista-search input {
       width: 100%;
-      padding: 0.55rem 0.9rem 0.55rem 2.2rem;
+      padding: 0.6rem 0.9rem 0.6rem 2.5rem;
       border: 1px solid var(--border);
       border-radius: 10px;
       background: var(--bg);
@@ -1516,7 +1518,7 @@
       const searchBar = document.createElement('div');
       searchBar.className = 'llista-search';
       searchBar.innerHTML = `
-        <svg class="llista-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <svg class="llista-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="search" id="llista-search-input" placeholder="Cerca recurs, municipi, paraula clau…" autocomplete="off" value="${escHtml(searchQuery)}">
       `;
       rightCol.appendChild(searchBar);
