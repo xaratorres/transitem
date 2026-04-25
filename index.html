@@ -1956,10 +1956,13 @@
       activePublic = (AJUDAM_OPTS.public.find(o => o.val === AJUDAM_STATE.public) || {}).filter || null;
       activeServei = (AJUDAM_OPTS.servei.find(o => o.val === AJUDAM_STATE.servei) || {}).filter || null;
       activeTipus = AJUDAM_STATE.tipus || null;
-      renderAll();
-      updateAjudamButton();
+      // Actualitzem comptador i checks ABANS de renderAll: si la renderització
+      // pesa o llança (mapa amb filtre, capes encara per carregar…) la part
+      // superior del modal sempre quedarà actualitzada per a l'usuari.
       updateAjudamCount();
+      updateAjudamButton();
       syncAjudamChecks();
+      renderAll();
       // Si hi ha territori seleccionat, recentra el mapa
       if (map && AJUDAM_STATE.territori && TERRITORI_META[AJUDAM_STATE.territori]) {
         const tm = TERRITORI_META[AJUDAM_STATE.territori];
