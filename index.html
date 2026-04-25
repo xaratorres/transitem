@@ -2107,6 +2107,9 @@
         renderChoropleth();
         fitStaticView();
         addTerritoryLabels();
+        // Forçar la reconstrucció de l'índex de cerca ara que tenim totes
+        // les municipis carregades (CAT + Bal + PV + CN + Andorra…).
+        searchIndex = null;
       });
       map.on('zoomend', toggleTerritoryLabels);
     }
@@ -3010,14 +3013,66 @@
     }
 
     // ─── Cercador de municipis + codi postal ─────
+    // Centre del bounding box d'una geometria (polígon/multipolígon).
+    // Aprox suficient per "volar" al municipi des del cercador.
+    function geomBBoxCenter(geom) {
+      if (!geom || !geom.coordinates) return null;
+      let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+      const visit = c => {
+        if (typeof c[0] === 'number') {
+          if (c[0]<minX) minX=c[0]; if (c[0]>maxX) maxX=c[0];
+          if (c[1]<minY) minY=c[1]; if (c[1]>maxY) maxY=c[1];
+        } else c.forEach(visit);
+      };
+      visit(geom.coordinates);
+      if (minX === Infinity) return null;
+      return [(minY+maxY)/2, (minX+maxX)/2];
+    }
     function buildSearchIndex() {
-      // Construeix índex: totes les municipis coneguts amb coord + municipis dels recursos
+      // Construeix índex: TOTS els municipis coberts pel mapa (CAT + PV + Bal +
+      // Franja + Carxe + CN + Andorra) + els de MUNICIPI_COORDS i dels recursos.
       const byName = {};
-      // MUNICIPI_COORDS (manual + capitals) és la font primària
+      // 1. MUNICIPI_COORDS (manual + capitals) — coords precises per als grans
       Object.keys(MUNICIPI_COORDS).forEach(name => {
         byName[name.toLowerCase()] = { name, coord: MUNICIPI_COORDS[name] };
       });
-      // Afegeix municipis dels recursos (si no ja indexats)
+      // 2. CAT (cat-municipis.json) — totes les municipis del Principat
+      if (municipisFeatures && municipisFeatures.features) {
+        municipisFeatures.features.forEach(f => {
+          const name = f.properties && f.properties.n;
+          if (!name) return;
+          const k = name.toLowerCase();
+          if (byName[k]) return;
+          const c = geomBBoxCenter(f.geometry);
+          if (c) byName[k] = { name, coord: c };
+        });
+      }
+      // 3. Bal + PV + Franja + Carxe (es-municipalities.json)
+      if (esCatalanMunis && esCatalanMunis.features) {
+        esCatalanMunis.features.forEach(f => {
+          const name = f.properties && f.properties.name;
+          if (!name) return;
+          const k = name.toLowerCase();
+          if (byName[k]) return;
+          const c = geomBBoxCenter(f.geometry);
+          if (c) byName[k] = { name, coord: c };
+        });
+      }
+      // 4. CN communes + Andorra parròquies
+      Object.keys(MUNICIPAL_TERRITORIES || {}).forEach(terri => {
+        const def = MUNICIPAL_TERRITORIES[terri];
+        const feats = (typeof municipalTerritories !== 'undefined') ? municipalTerritories[terri] : null;
+        if (!feats || !feats.features) return;
+        feats.features.forEach(f => {
+          const name = f.properties && f.properties[def.nameField];
+          if (!name) return;
+          const k = name.toLowerCase();
+          if (byName[k]) return;
+          const c = geomBBoxCenter(f.geometry);
+          if (c) byName[k] = { name, coord: c };
+        });
+      });
+      // 5. Municipis dels recursos (per si en falta algun)
       RECURSOS.forEach(r => {
         if (r.municipi && r.coord) {
           const k = r.municipi.toLowerCase();
