@@ -1987,8 +1987,11 @@
       `;
       rightCol.appendChild(searchBar);
 
-      // Wire del botó CSV del llistat (acabat d'injectar via innerHTML).
-      const btnCsv = byId('btn-csv-llista');
+      // Wire del botó CSV del llistat. Atenció: en aquest punt el `title`
+      // viu dins de `rightCol` però rightCol encara no és al DOM, així que
+      // byId() (= document.getElementById) retorna null. Fem la query
+      // directament dins del title.
+      const btnCsv = title.querySelector('#btn-csv-llista');
       if (btnCsv) btnCsv.addEventListener('click', e => { e.stopPropagation(); downloadFilteredCSV(); });
 
       let totalVisible = 0;
