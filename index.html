@@ -1972,7 +1972,14 @@
       const q = (typeof searchQuery === 'string' ? searchQuery : '').trim();
       const anyFilter = activeTipus !== null || activeTerritori !== null
         || activePublic !== null || activeServei !== null || q.length >= 2;
-      if (!anyFilter) { banner.style.display = 'none'; return; }
+      if (!anyFilter) {
+        banner.style.display = 'none';
+        // Important: també hem d'amagar els chips off-map. Si retornàvem aquí
+        // sense cridar updateOffMapList(), després de buidar la cerca els
+        // chips de "Més enllà" / sense coord es quedaven a la pantalla.
+        updateOffMapList();
+        return;
+      }
       const count = getFilteredRecursos().length;
       const labels = [];
       if (activeTipus) labels.push(TIPUS_META[activeTipus]?.nom || activeTipus);
