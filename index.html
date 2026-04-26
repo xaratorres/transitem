@@ -1622,14 +1622,15 @@
     let searchQuery = '';
 
     // ─── Icons vista ──────────────────────────
+    // El botó vista és sempre la icona de mapa (toggle: actiu/inactiu).
     const ICON_VIEW_MAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`;
-    const ICON_VIEW_LIST = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
 
     // ─── Vista ────────────────────────────────
     const VISTA_KEY = 'transitem-vista';
-    function getVista() { return localStorage.getItem(VISTA_KEY) || 'llista'; }
+    // localStorage pot fallar en mode privat / quota plena → wrap defensiu.
+    function getVista() { try { return localStorage.getItem(VISTA_KEY) || 'llista'; } catch (_) { return 'llista'; } }
     function setVista(v) {
-      localStorage.setItem(VISTA_KEY, v);
+      try { localStorage.setItem(VISTA_KEY, v); } catch (_) {}
       document.body.classList.toggle('vista-mapa', v === 'mapa');
       document.body.classList.toggle('vista-llista', v === 'llista');
       const btn = byId('btn-vista');
@@ -2619,7 +2620,6 @@
         'vernet':                    'vernet les bains',
         'sallagosa':                 'saillagouse',
         'bolquera':                  'bolquere',
-        'font romeu':                'font romeu odeillo via',
         'formiguera':                'formigueres',
         'els angles':                'angles',
         'matamala':                  'matemale',
@@ -2634,7 +2634,6 @@
         'saragossa':                 'zaragoza',
         'terol':                     'teruel',
         'vall de roures':            'valderrobres',
-        'binefar':                   'binefar',   // amb "é" el INE l'escriu igual sense accent normalitzat
         'tamarit de llitera':        'tamarite de litera',
         'calaceit':                  'calaceite',
         'massalio':                  'mazaleon',
@@ -3025,7 +3024,8 @@
               if (ibericMerged) drawPerim(ibericMerged);
               drawPerim((cnPo.features && cnPo.features[0] && cnPo.features[0].geometry) || cnPo.geometry);
             }
-          }).catch(() => {
+          }).catch(e => {
+            console.warn('cn-po.geojson fetch fallat (perímetre PPCC sense CN):', e);
             if (ibericMerged) drawPerim(ibericMerged);
           });
           // Balears (07) — illes amb perímetre propi
@@ -3040,8 +3040,8 @@
         fetch('data/andorra.geojson').then(r => r.json()).then(andGeo => {
           const g = (andGeo.features && andGeo.features[0] && andGeo.features[0].geometry) || andGeo.geometry || andGeo;
           drawPerim(g);
-        }).catch(() => {});
-      } catch (_) {}
+        }).catch(e => console.warn('andorra.geojson fetch fallat:', e));
+      } catch (e) { console.warn('andorra.geojson fetch llançat:', e); }
       // L'Alguer (illa)
       if (simpleTerritories.alguer && simpleTerritories.alguer.features.length) {
         simpleTerritories.alguer.features.forEach(f => drawPerim(f.geometry));
@@ -3093,9 +3093,6 @@
         extraMarkers.push(marker);
       });
     }
-
-    // Retorna el TopoJSON→GeoJSON ja carregat (per debug)
-    window.__getMunicipis = () => municipisFeatures;
 
     // ─── Location picker (geo, search, postal, click) ────────────────
     function setUserLocation({ lat, lon, label }) {
@@ -3404,6 +3401,11 @@
       searchSugs.style.left = r.left + 'px';
       searchSugs.style.width = r.width + 'px';
     }
+    // Listeners per recol·locar el sugs en scroll/resize. Els enganxem una
+    // sola vegada al boot (abans estaven dins de showSugs i s'acumulaven a
+    // cada keystroke → memory leak menor).
+    window.addEventListener('scroll', positionSugs, { passive: true });
+    window.addEventListener('resize', positionSugs, { passive: true });
     function showSugs(list) {
       if (!list.length) { searchSugs.style.display = 'none'; return; }
       searchSugs.innerHTML = list.slice(0, 8).map((s, i) =>
@@ -3414,12 +3416,13 @@
       ).join('');
       positionSugs();
       searchSugs.style.display = 'block';
-      window.addEventListener('scroll', positionSugs, { passive: true, once: false });
-      window.addEventListener('resize', positionSugs, { passive: true, once: false });
       searchSugs.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => {
           const i = parseInt(btn.dataset.i, 10);
           const s = list[i];
+          // Saltem entries informatives ("Cercant…", "no trobat", error): no
+          // tenen coord vàlida i acabarien posant l'usuari a lat 0/lon 0.
+          if (!s.coord || (s.coord[0] === 0 && s.coord[1] === 0)) return;
           setUserLocation({ lat: s.coord[0], lon: s.coord[1], label: s.name });
           searchInput.value = '';
           searchSugs.style.display = 'none';
@@ -3494,11 +3497,10 @@
       setVista(b.dataset.v);
       refreshVistaSwitch();
     });
-    // Patch: setVista ha de refrescar el switch
-    const _origSetVista = setVista;
-    window.setVista = function(v) { _origSetVista(v); refreshVistaSwitch(); };
-    // Fem el patch via wrapping del btn-vista existent
-    byId('btn-vista').addEventListener('click', () => setTimeout(refreshVistaSwitch, 0));
+    // Sincronitza el switch del config quan es toca el botó vista de la nav.
+    // setVista no és global (viu dins l'IIFE); la sincronització passa pel
+    // listener del propi btn-vista, així no cal patchejar res.
+    byId('btn-vista').addEventListener('click', refreshVistaSwitch);
     refreshVistaSwitch();
 
     // ─── Onboarding → shared/js/onboarding.js ──
