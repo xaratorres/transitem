@@ -2486,6 +2486,50 @@
       return feat._normName;
     }
 
+    // ─── Popup helpers (compartits pels 5 layers municipals/territorials) ─
+    // Abans hi havia 5 còpies pràcticament idèntiques d'aquesta plantilla.
+    function badgeHTML(count, bg, withBorder) {
+      const border = withBorder ? ';border:1px solid rgba(0,0,0,0.2)' : '';
+      const textColor = withBorder ? 'var(--ink)' : '#fff';
+      return ` <span style="background:${bg};color:${textColor};padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px${border}">${count}</span>`;
+    }
+    function buildMuniPopupHTML(opts) {
+      const { titleHTML, subText, list, itemShowMunicipi, showOverflowCap, locateButtonText } = opts;
+      let html = `<div class="popup-nom">${titleHTML}</div>`;
+      html += `<div class="popup-muni">${escHtml(subText || '')}</div>`;
+      if (!list.length) {
+        html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
+      } else {
+        html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+        list.slice(0, 10).forEach(r => {
+          const muniSuffix = itemShowMunicipi && r.municipi
+            ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>`
+            : '';
+          html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${muniSuffix}</span>`;
+        });
+        if (showOverflowCap !== false && list.length > 10) {
+          html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
+        }
+        html += '</div>';
+      }
+      html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">${locateButtonText}</button></div>`;
+      return html;
+    }
+    function wireMuniPopupHandlers(layer, getLocateLabel) {
+      layer.on('popupopen', e => {
+        const root = e.popup._contentNode;
+        root.querySelectorAll('.popup-btn').forEach(btn => {
+          btn.addEventListener('click', () => openFitxa(btn.dataset.id));
+        });
+        const locBtn = root.querySelector('.popup-locate');
+        if (locBtn) locBtn.addEventListener('click', () => {
+          const c = layer.getBounds().getCenter();
+          setUserLocation({ lat: c.lat, lon: c.lng, label: getLocateLabel() });
+          layer.closePopup();
+        });
+      });
+    }
+
     // Ajusta l'enquadrament per mostrar tots els territoris de parla catalana a la vista estàtica.
     // Inclou tot el Mediterrani occidental: Múrcia (SW) → Catalunya Nord (NE) → l'Alguer (E).
     // Amb padding mínim perquè ompli l'espai disponible al màxim.
@@ -2734,34 +2778,12 @@
           layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#0a0a0a' }));
           layer.on('mouseout', () => layer.setStyle({ weight: 0.5, color: '#ffffff' }));
           const muni = feat.properties.n;
-          const comarca = feat.properties.c;
-          let html;
-          if (list.length === 0) {
-            html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(comarca)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
-          } else {
-            html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(comarca)}</div>`;
-            html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
-            list.slice(0, 10).forEach(r => {
-              html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
-            });
-            if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
-            html += '</div>';
-          }
-          // Botó "Situar-me aquí"
-          html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
-          layer.bindPopup(html);
-          layer.on('popupopen', e => {
-            const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-            btns.forEach(btn => btn.addEventListener('click', () => {
-              openFitxa(btn.dataset.id);
-            }));
-            const locBtn = e.popup._contentNode.querySelector('.popup-locate');
-            if (locBtn) locBtn.addEventListener('click', () => {
-              const c = layer.getBounds().getCenter();
-              setUserLocation({ lat: c.lat, lon: c.lng, label: feat.properties.n || 'Municipi' });
-              layer.closePopup();
-            });
-          });
+          const titleHTML = escHtml(muni) + (list.length ? badgeHTML(list.length, colorForCount(list.length)) : '');
+          layer.bindPopup(buildMuniPopupHTML({
+            titleHTML, subText: feat.properties.c, list,
+            locateButtonText: '📍 Situar-me aquí',
+          }));
+          wireMuniPopupHandlers(layer, () => muni || 'Municipi');
         },
       }).addTo(map);
 
@@ -2786,32 +2808,12 @@
             const muni = feat.properties.name;
             const terri = feat.properties._territori;
             const terriLabel = (TERRITORI_META[terri] || {}).nom || '';
-            let html;
-            if (list.length === 0) {
-              html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(terriLabel)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
-            } else {
-              html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(terriLabel)}</div>`;
-              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
-              list.slice(0, 10).forEach(r => {
-                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
-              });
-              if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
-              html += '</div>';
-            }
-            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
-            layer.bindPopup(html);
-            layer.on('popupopen', e => {
-              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-              btns.forEach(btn => btn.addEventListener('click', () => {
-                openFitxa(btn.dataset.id);
-              }));
-              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
-              if (locBtn) locBtn.addEventListener('click', () => {
-                const c = layer.getBounds().getCenter();
-                setUserLocation({ lat: c.lat, lon: c.lng, label: muni });
-                layer.closePopup();
-              });
-            });
+            const titleHTML = escHtml(muni) + (list.length ? badgeHTML(list.length, colorForCount(list.length)) : '');
+            layer.bindPopup(buildMuniPopupHTML({
+              titleHTML, subText: terriLabel, list,
+              locateButtonText: '📍 Situar-me aquí',
+            }));
+            wireMuniPopupHandlers(layer, () => muni);
           },
         }).addTo(map);
       }
@@ -2840,34 +2842,16 @@
             const terri = PROV_TERRITORI[feat.properties.name];
             const territoriMeta = TERRITORI_META[terri] || {};
             const list = byTerri[terri] || [];
+            const provName = feat.properties.name;
             layer.on('mouseover', () => layer.setStyle({ weight: 0 }));
             layer.on('mouseout', () => layer.setStyle({ weight: 0 }));
-            let html = `<div class="popup-nom">${escHtml(feat.properties.name)} <span style="background:${TERRITORI_COLOR_PASTEL[terri] || '#ccc'};color:var(--ink);padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px;border:1px solid rgba(0,0,0,0.2)">${list.length}</span></div>`;
-            html += `<div class="popup-muni">${escHtml(territoriMeta.nom || terri)}</div>`;
-            if (list.length === 0) {
-              html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
-            } else {
-              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
-              list.slice(0, 10).forEach(r => {
-                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${r.municipi ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>` : ''}</span>`;
-              });
-              if (list.length > 10) html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
-              html += '</div>';
-            }
-            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me a ${escHtml(feat.properties.name)}</button></div>`;
-            layer.bindPopup(html);
-            layer.on('popupopen', e => {
-              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-              btns.forEach(btn => btn.addEventListener('click', () => {
-                openFitxa(btn.dataset.id);
-              }));
-              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
-              if (locBtn) locBtn.addEventListener('click', () => {
-                const c = layer.getBounds().getCenter();
-                setUserLocation({ lat: c.lat, lon: c.lng, label: feat.properties.name });
-                layer.closePopup();
-              });
-            });
+            const titleHTML = escHtml(provName) + badgeHTML(list.length, TERRITORI_COLOR_PASTEL[terri] || '#ccc', true);
+            layer.bindPopup(buildMuniPopupHTML({
+              titleHTML, subText: territoriMeta.nom || terri, list,
+              itemShowMunicipi: true,
+              locateButtonText: '📍 Situar-me a ' + escHtml(provName),
+            }));
+            wireMuniPopupHandlers(layer, () => provName);
           },
         }).addTo(map);
         // Envia la capa de províncies al fons (sota el choropleth i els markers)
@@ -2896,31 +2880,13 @@
             const list = byMuni[k] || [];
             lyr.on('mouseover', () => lyr.setStyle({ weight: 2, color: '#0a0a0a' }));
             lyr.on('mouseout', () => lyr.setStyle({ weight: 0.5, color: '#ffffff' }));
-            let html;
-            if (list.length === 0) {
-              html = `<div class="popup-nom">${escHtml(muni)}</div><div class="popup-muni">${escHtml(def.label)}</div><div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>`;
-            } else {
-              html = `<div class="popup-nom">${escHtml(muni)} <span style="background:${colorForCount(list.length)};color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${list.length}</span></div><div class="popup-muni">${escHtml(def.label)}</div>`;
-              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
-              list.slice(0, 10).forEach(r => {
-                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
-              });
-              html += '</div>';
-            }
-            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me aquí</button></div>`;
-            lyr.bindPopup(html);
-            lyr.on('popupopen', e => {
-              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-              btns.forEach(btn => btn.addEventListener('click', () => {
-                openFitxa(btn.dataset.id);
-              }));
-              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
-              if (locBtn) locBtn.addEventListener('click', () => {
-                const c = lyr.getBounds().getCenter();
-                setUserLocation({ lat: c.lat, lon: c.lng, label: muni });
-                lyr.closePopup();
-              });
-            });
+            const titleHTML = escHtml(muni) + (list.length ? badgeHTML(list.length, colorForCount(list.length)) : '');
+            lyr.bindPopup(buildMuniPopupHTML({
+              titleHTML, subText: def.label, list,
+              showOverflowCap: false,
+              locateButtonText: '📍 Situar-me aquí',
+            }));
+            wireMuniPopupHandlers(lyr, () => muni);
           },
         }).addTo(map);
         municipalLayers[terri] = layer;
@@ -2944,31 +2910,14 @@
           onEachFeature: (feat, lyr) => {
             lyr.on('mouseover', () => lyr.setStyle({ weight: 2.2 }));
             lyr.on('mouseout', () => lyr.setStyle({ weight: hasAny ? 1.2 : 0.7 }));
-            let html = `<div class="popup-nom">${escHtml(def.label)} <span style="background:${TERRITORI_COLOR_PASTEL[terri] || '#ccc'};color:var(--ink);padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px;border:1px solid rgba(0,0,0,0.2)">${list.length}</span></div>`;
-            html += `<div class="popup-muni">${escHtml(def.sub)}</div>`;
-            if (list.length === 0) {
-              html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
-            } else {
-              html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
-              list.slice(0, 10).forEach(r => {
-                html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${r.municipi ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>` : ''}</span>`;
-              });
-              html += '</div>';
-            }
-            html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">📍 Situar-me a ${escHtml(def.label)}</button></div>`;
-            lyr.bindPopup(html);
-            lyr.on('popupopen', e => {
-              const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-              btns.forEach(btn => btn.addEventListener('click', () => {
-                openFitxa(btn.dataset.id);
-              }));
-              const locBtn = e.popup._contentNode.querySelector('.popup-locate');
-              if (locBtn) locBtn.addEventListener('click', () => {
-                const c = lyr.getBounds().getCenter();
-                setUserLocation({ lat: c.lat, lon: c.lng, label: def.label });
-                lyr.closePopup();
-              });
-            });
+            const titleHTML = escHtml(def.label) + badgeHTML(list.length, TERRITORI_COLOR_PASTEL[terri] || '#ccc', true);
+            lyr.bindPopup(buildMuniPopupHTML({
+              titleHTML, subText: def.sub, list,
+              itemShowMunicipi: true,
+              showOverflowCap: false,
+              locateButtonText: '📍 Situar-me a ' + escHtml(def.label),
+            }));
+            wireMuniPopupHandlers(lyr, () => def.label);
           },
         }).addTo(map);
         layer.bringToBack();
