@@ -56,7 +56,6 @@
   <link rel="stylesheet" href="./shared/css/base.css">
   <link rel="stylesheet" href="./shared/css/navbar.css">
   <link rel="stylesheet" href="./shared/css/modals.css">
-  <link rel="stylesheet" href="./shared/css/collapsible.css">
   <link rel="stylesheet" href="./shared/css/category-group.css">
   <link rel="stylesheet" href="./shared/css/search.css">
   <script src="./shared/js/overlay.js" defer></script>
@@ -766,20 +765,6 @@
       #mapa-container { flex: 1; min-height: 0; }
     }
 
-    .mapa-search {
-      flex: 1;
-      background: rgba(255,255,255,0.96);
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 6px 10px;
-      display: flex; align-items: center; gap: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .mapa-search input {
-      border: none; background: transparent; outline: none;
-      flex: 1; font: inherit; font-size: 0.88rem;
-    }
     .popup-nom { font-weight: 700; font-size: 0.92rem; margin-bottom: 3px; }
     .popup-muni { color: var(--ink-3); font-size: 0.78rem; margin-bottom: 6px; }
     .popup-btn { color: var(--pink-ink); font-weight: 600; font-size: 0.82rem; cursor: pointer; }
@@ -1392,7 +1377,7 @@
     html.dark .config-btn { background: rgba(255,255,255,0.10); color: var(--ink); }
     html.dark .config-btn:hover { background: rgba(255,255,255,0.16); }
     html.dark .empty-state strong { color: var(--ink); }
-    html.dark #view-mapa, html.dark #mapa-container { filter: brightness(0.85) contrast(1.1); }
+    html.dark #mapa-view, html.dark #mapa-container { filter: brightness(0.85) contrast(1.1); }
   </style>
 </head>
 <body class="vista-llista">
@@ -2217,12 +2202,6 @@
     byId('btn-vista').addEventListener('click', () => {
       setVista(getVista() === 'mapa' ? 'llista' : 'mapa');
     });
-    document.querySelectorAll('[data-vista]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setVista(btn.dataset.vista);
-        byId('overlay-config').classList.remove('open');
-      });
-    });
 
     // ─── Mapa choropleth estil Batllies ─────────────
     // Fonts:
@@ -2245,6 +2224,17 @@
     // surtin d'aquí. Cobreix Catalunya, PV, Balears, Franja, Carxe, CN,
     // Andorra i l'Alguer amb un petit marge.
     const PPCC_MAX_BOUNDS = [[36.5, -2.5], [43.5, 9.7]];
+    // Inflació radial del polígon de Catalunya Nord abans de la unió amb el
+    // continent ibèric. Cal perquè CAT (INE) i CN (IGN) no comparteixen
+    // coords exactes a la Pirineu i sense inflació la unió deixa un micro
+    // buit que es veu com a línia interna. ~4 km, invisible al zoom actual.
+    const CN_INFLATION_DEG = 0.04;
+    // Llindar mínim d'àrea (en deg²) dels polígons que mantenim a la unió
+    // perimètrica final. Filtra slivers residuals de la unió. ~100 km².
+    const MIN_PERIM_POLY_AREA_DEG2 = 0.01;
+    // Tolerància lat/lon (en graus) per considerar dos markers a la mateixa
+    // posició. ~110 m a latitud mediterrània.
+    const MARKER_LATLNG_EPS = 0.001;
     let municipisFeatures = null;  // cache del GeoJSON convertit
     let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
     let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
@@ -3041,21 +3031,17 @@
             try {
               const cnGeom = (cnPo.features && cnPo.features[0] && cnPo.features[0].geometry) || cnPo.geometry;
               if (ibericMerged && cnGeom && typeof polygonClipping !== 'undefined') {
-                const cnInflated = inflateMP(toMP(cnGeom), 0.04);
+                const cnInflated = inflateMP(toMP(cnGeom), CN_INFLATION_DEG);
                 const unified = polygonClipping.union(toMP(ibericMerged), cnInflated);
-                // Filtra polígons residuals (< 0.001 deg² ≈ 10km²): slivers a la
-                // frontera CAT-CN, illots disconnexos, Llívia… Ens quedem només
-                // amb el contorn principal (+ illots >10km² si n'hi ha).
+                // Filtra polígons residuals (slivers, illots, Llívia…) per
+                // sota de MIN_PERIM_POLY_AREA_DEG2 (~100 km²). Conservem el
+                // contorn principal i les illes prou grans.
                 const ringArea = ring => {
                   let a = 0;
                   for (let i = 0; i < ring.length - 1; i++) a += ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1];
                   return Math.abs(a) / 2;
                 };
-                // Més agressiu: només conservem polígons significatius
-                // (>0.01 deg² ≈ 100km²). Això elimina slivers residuals i
-                // illes molt petites que queden "soltes" a la unió (fragments
-                // visibles com línies negres internes prop de la frontera).
-                const bigPolys = unified.filter(poly => ringArea(poly[0]) > 0.01);
+                const bigPolys = unified.filter(poly => ringArea(poly[0]) > MIN_PERIM_POLY_AREA_DEG2);
                 drawPerim({ type: 'MultiPolygon', coordinates: bigPolys.length ? bigPolys : unified });
               } else {
                 if (ibericMerged) drawPerim(ibericMerged);
@@ -3269,7 +3255,7 @@
             openFitxa(el.dataset.id);
             return;
           }
-          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
+          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < MARKER_LATLNG_EPS && Math.abs(m.getLatLng().lng - lon) < MARKER_LATLNG_EPS);
           if (!marker) return;
           // Toggle: si el popup d'aquest marker ja està obert, el tanquem.
           if (marker.isPopupOpen && marker.isPopupOpen()) {
@@ -3286,7 +3272,7 @@
         const lat = parseFloat(el.dataset.lat);
         const lon = parseFloat(el.dataset.lon);
         if (!isNaN(lat) && !isNaN(lon)) {
-          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.001 && Math.abs(m.getLatLng().lng - lon) < 0.001);
+          const marker = extraMarkers.find(m => m.getLatLng && Math.abs(m.getLatLng().lat - lat) < MARKER_LATLNG_EPS && Math.abs(m.getLatLng().lng - lon) < MARKER_LATLNG_EPS);
           if (marker) {
             const setActive = on => locBtn && locBtn.classList.toggle('is-active', on);
             marker.on('popupopen', () => setActive(true));
@@ -3439,7 +3425,7 @@
     function showSugs(list) {
       if (!list.length) { searchSugs.style.display = 'none'; return; }
       searchSugs.innerHTML = list.slice(0, 8).map((s, i) =>
-        `<button type="button" data-i="${i}" data-type="${s._type || 'muni'}">
+        `<button type="button" data-i="${i}">
           <div>${escHtml(s.name)}</div>
           ${s.hint ? `<div class="sug-hint">${escHtml(s.hint)}</div>` : ''}
         </button>`

@@ -1,5 +1,5 @@
 // Build PNGs from SVG sources for stealth disguises.
-// Usage: node stealth/build-icones.js
+// Usage: node stealth/build-icones.cjs
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
