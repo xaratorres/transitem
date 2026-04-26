@@ -1674,11 +1674,33 @@
     const normSearch = s => window.SharedSearch.norm(s);
     const attachSearchClear = input => window.SharedSearch.attachClear(input);
 
+    // Precomputem un blob normalitzat (`_search`) per cada recurs un cop al
+    // boot, així cada keystroke només normalitza la query i fa un includes
+    // contra strings ja preparats. Abans normSearch s'executava sobre 7
+    // camps × ~250 recursos a cada keystroke.
+    RECURSOS.forEach(r => {
+      r._search = normSearch([
+        r.nom, r.ambit, r.descripcio_breu, r.municipi, r.comarca,
+        (r.ofereix || []).join(' '),
+        (r.quan_contactar || []).join(' ')
+      ].join(' ').replace(/\n/g, ' '));
+    });
     function entMatchesQuery(r, q) {
       if (!q || q.length < 2) return true;
-      const lc = normSearch(q);
-      return [r.nom, r.ambit, r.descripcio_breu, r.municipi, r.comarca, (r.ofereix||[]).join(' '), (r.quan_contactar||[]).join(' ')]
-        .some(f => normSearch(f).replace(/\n/g,' ').includes(lc));
+      return r._search.includes(normSearch(q));
+    }
+
+    // Cache de la llista filtrada — invalida quan canvia qualsevol filtre o
+    // la query. Hi ha 5+ llocs que filtraven el mateix dataset a cada
+    // render; ara només es calcula una vegada per estat.
+    let _filteredCache = null;
+    let _filteredKey = null;
+    function getFilteredRecursos() {
+      const key = (activeTipus || '') + '|' + (activeTerritori || '') + '|' + (activePublic || '') + '|' + (activeServei || '') + '|' + (searchQuery || '');
+      if (key === _filteredKey && _filteredCache) return _filteredCache;
+      _filteredKey = key;
+      _filteredCache = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, searchQuery));
+      return _filteredCache;
     }
 
     function entMatchesFilters(r) {
@@ -1718,7 +1740,7 @@
       const anyFilterActive = activeTipus !== null || activeTerritori !== null || activePublic !== null || activeServei !== null;
 
       // Compta el total que passa filtres, per al contador
-      const totalFiltered = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+      const totalFiltered = getFilteredRecursos().length;
 
       const title = document.createElement('h2');
       title.className = 'llista-sec-title';
@@ -1734,8 +1756,11 @@
       rightCol.appendChild(searchBar);
 
       let totalVisible = 0;
+      // getFilteredRecursos() ja aplica filters + query un sol cop; aquí
+      // només particionem per tipus.
+      const allFiltered = getFilteredRecursos();
       Object.entries(TIPUS_META).forEach(([key, meta]) => {
-        const llista = RECURSOS.filter(r => r.tipus === key && entMatchesFilters(r) && entMatchesQuery(r, q))
+        const llista = allFiltered.filter(r => r.tipus === key)
           .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca', { sensitivity: 'base' }));
         if (!llista.length) return;
         totalVisible += llista.length;
@@ -1854,7 +1879,7 @@
       const anyFilter = activeTipus !== null || activeTerritori !== null
         || activePublic !== null || activeServei !== null || q.length >= 2;
       if (!anyFilter) { banner.style.display = 'none'; return; }
-      const count = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+      const count = getFilteredRecursos().length;
       const labels = [];
       if (activeTipus) labels.push(TIPUS_META[activeTipus]?.nom || activeTipus);
       if (activeTerritori) labels.push(TERRITORI_META[activeTerritori]?.nom || activeTerritori);
@@ -1883,7 +1908,7 @@
       const anyFilter = activeTipus !== null || activeTerritori !== null
         || activePublic !== null || activeServei !== null || q.length >= 2;
       if (!anyFilter) { host.style.display = 'none'; host.innerHTML = ''; return; }
-      const matched = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q));
+      const matched = getFilteredRecursos();
       // Recursos sense coord o amb coord fora dels PPCC (no es renderitzen al mapa).
       const offmap = matched.filter(r => {
         if (!r.coord) return true;
@@ -1898,7 +1923,6 @@
       }).join('');
       host.style.display = 'flex';
       host.querySelectorAll('.mapa-offmap-chip').forEach(b => b.addEventListener('click', () => {
-        byId('overlay-fitxa').classList.add('open');
         openFitxa(b.dataset.id);
       }));
     }
@@ -2109,8 +2133,7 @@
     }
 
     function updateAjudamCount() {
-      const q = searchQuery.trim();
-      const n = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q)).length;
+      const n = getFilteredRecursos().length;
       const el = byId('ajudam-count');
       el.textContent = n;
       el.classList.toggle('zero', n === 0);
@@ -2453,6 +2476,16 @@
       return municipalTerritories[terri];
     }
 
+    // Cache mandrós del nom municipi normalitzat per feature. Cada
+    // renderChoropleth (cada keystroke a vista mapa) abans cridava normMuni
+    // dues vegades per cada un dels ~3000 municipis (style + onEachFeature).
+    // Ara la primera crida memoitza a `feat._normName`.
+    function featNorm(feat, nameField) {
+      if (feat._normName !== undefined) return feat._normName;
+      feat._normName = normMuni(feat.properties && feat.properties[nameField]);
+      return feat._normName;
+    }
+
     // Ajusta l'enquadrament per mostrar tots els territoris de parla catalana a la vista estàtica.
     // Inclou tot el Mediterrani occidental: Múrcia (SW) → Catalunya Nord (NE) → l'Alguer (E).
     // Amb padding mínim perquè ompli l'espai disponible al màxim.
@@ -2588,7 +2621,7 @@
       }
 
       const q = searchQuery.trim();
-      const filtered = RECURSOS.filter(r => entMatchesFilters(r) && entMatchesQuery(r, q));
+      const filtered = getFilteredRecursos();
 
       // Aliases per a noms en altres idiomes (català ↔ francès/castellà)
       const MUNI_ALIASES = {
@@ -2686,7 +2719,7 @@
       // Choropleth només per CAT (el TopoJSON cobreix Catalunya)
       choroplethLayer = L.geoJSON(municipisFeatures, {
         style: feat => {
-          const k = normMuni(feat.properties.n);
+          const k = featNorm(feat, 'n');
           const n = (byMuni[k] || []).length;
           return {
             color: '#ffffff',
@@ -2696,7 +2729,7 @@
           };
         },
         onEachFeature: (feat, layer) => {
-          const k = normMuni(feat.properties.n);
+          const k = featNorm(feat, 'n');
           const list = byMuni[k] || [];
           layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#0a0a0a' }));
           layer.on('mouseout', () => layer.setStyle({ weight: 0.5, color: '#ffffff' }));
@@ -2720,7 +2753,6 @@
           layer.on('popupopen', e => {
             const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
             btns.forEach(btn => btn.addEventListener('click', () => {
-              byId('overlay-fitxa').classList.add('open');
               openFitxa(btn.dataset.id);
             }));
             const locBtn = e.popup._contentNode.querySelector('.popup-locate');
@@ -2737,7 +2769,7 @@
       if (esCatalanMunis && esCatalanMunis.features.length) {
         esMunisLayer = L.geoJSON(esCatalanMunis, {
           style: feat => {
-            const k = normMuni(feat.properties.name);
+            const k = featNorm(feat, 'name');
             const n = (byMuni[k] || []).length;
             return {
               color: '#ffffff',
@@ -2747,7 +2779,7 @@
             };
           },
           onEachFeature: (feat, layer) => {
-            const k = normMuni(feat.properties.name);
+            const k = featNorm(feat, 'name');
             const list = byMuni[k] || [];
             layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#0a0a0a' }));
             layer.on('mouseout', () => layer.setStyle({ weight: 0.4, color: '#ffffff' }));
@@ -2771,7 +2803,6 @@
             layer.on('popupopen', e => {
               const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
               btns.forEach(btn => btn.addEventListener('click', () => {
-                byId('overlay-fitxa').classList.add('open');
                 openFitxa(btn.dataset.id);
               }));
               const locBtn = e.popup._contentNode.querySelector('.popup-locate');
@@ -2828,7 +2859,6 @@
             layer.on('popupopen', e => {
               const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
               btns.forEach(btn => btn.addEventListener('click', () => {
-                byId('overlay-fitxa').classList.add('open');
                 openFitxa(btn.dataset.id);
               }));
               const locBtn = e.popup._contentNode.querySelector('.popup-locate');
@@ -2851,7 +2881,7 @@
         if (!feats || !feats.features.length) return;
         const layer = L.geoJSON(feats, {
           style: feat => {
-            const k = normMuni(feat.properties[def.nameField]);
+            const k = featNorm(feat, def.nameField);
             const n = (byMuni[k] || []).length;
             return {
               color: '#ffffff',
@@ -2862,7 +2892,7 @@
           },
           onEachFeature: (feat, lyr) => {
             const muni = feat.properties[def.nameField];
-            const k = normMuni(muni);
+            const k = featNorm(feat, def.nameField);
             const list = byMuni[k] || [];
             lyr.on('mouseover', () => lyr.setStyle({ weight: 2, color: '#0a0a0a' }));
             lyr.on('mouseout', () => lyr.setStyle({ weight: 0.5, color: '#ffffff' }));
@@ -2882,7 +2912,6 @@
             lyr.on('popupopen', e => {
               const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
               btns.forEach(btn => btn.addEventListener('click', () => {
-                byId('overlay-fitxa').classList.add('open');
                 openFitxa(btn.dataset.id);
               }));
               const locBtn = e.popup._contentNode.querySelector('.popup-locate');
@@ -2931,7 +2960,6 @@
             lyr.on('popupopen', e => {
               const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
               btns.forEach(btn => btn.addEventListener('click', () => {
-                byId('overlay-fitxa').classList.add('open');
                 openFitxa(btn.dataset.id);
               }));
               const locBtn = e.popup._contentNode.querySelector('.popup-locate');
@@ -3086,7 +3114,6 @@
         marker.on('popupopen', e => {
           const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
           btns.forEach(btn => btn.addEventListener('click', () => {
-            byId('overlay-fitxa').classList.add('open');
             openFitxa(btn.dataset.id);
           }));
         });
@@ -3218,7 +3245,6 @@
       listEl.querySelectorAll('.mapa-result-item').forEach(el => {
         // Clic al cos → obrir fitxa
         el.querySelector('.mapa-result-body').addEventListener('click', () => {
-          byId('overlay-fitxa').classList.add('open');
           openFitxa(el.dataset.id);
         });
         // Clic al botó "lloc" → obrir el popup del marker al lloc on és, SENSE
@@ -3234,7 +3260,6 @@
           const inBounds = lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
             && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1];
           if (!inBounds) {
-            byId('overlay-fitxa').classList.add('open');
             openFitxa(el.dataset.id);
             return;
           }
