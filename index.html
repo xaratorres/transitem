@@ -1733,9 +1733,13 @@
       }
       if (v === 'mapa') {
         initMap();
-        // En entrar a mapa, sincronitza el banner d'avís de filtres actius
-        // (l'usuari pot venir d'Ajuda'm o del llistat amb filtres aplicats).
-        if (typeof updateMapFilterBanner === 'function') updateMapFilterBanner();
+        // En entrar a mapa, fem un render complet per assegurar que choropleth,
+        // markers, banner i off-map list reflecteixen l'estat actual de filtres
+        // (l'usuari pot venir d'Ajuda'm o de llista havent canviat filtres
+        // mentre la vista mapa estava amagada). renderAll només repinta el
+        // mapa si vista-mapa ja és active, així que primer hem aplicat la
+        // classe i ara podem cridar.
+        if (typeof renderAll === 'function') renderAll();
       }
     }
 
