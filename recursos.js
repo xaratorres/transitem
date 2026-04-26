@@ -638,7 +638,7 @@ const RECURSOS = [
     nom: 'Associació Transvaginarias',
     tipus: 'associacio',
     ambit: 'Pedagogia sexual',
-    descripcio_breu: 'Projecte i-Vaginarium de pedagogia sexual de la vagina transsexual.',
+    descripcio_breu: 'Projecte Ivaginarium de pedagogia sexual de la vagina transsexual.',
     per_a_que: 'Pedagogia específica sobre la vagina transsexual, salut sexual i acompanyament a dones trans.',
     ofereix: ['Pedagogia sexual', 'Informació específica'],
     per_a_qui: ['dones_trans', 'adults'],
