@@ -1416,6 +1416,13 @@
   <!-- ─── MAPA VIEW — sidebar amb location picker + mapa estàtic ─────────── -->
   <div id="mapa-view">
     <aside id="mapa-sidebar">
+      <!-- Cercador d'entitats sempre visible a la vista mapa. Comparteix
+           l'estat searchQuery amb el cercador del llistat: filtra els
+           markers, el banner de filtres i la llista de resultats. -->
+      <div class="llista-search mapa-entity-search">
+        <svg class="llista-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="mapa-entity-search-input" placeholder="Cerca entitat, paraula clau…" autocomplete="off">
+      </div>
       <div id="mapa-loc-picker">
         <h3>On vius o busques?</h3>
         <p class="hint">Marca la teva ubicació per veure recursos a prop. El mapa ampliarà al radi que triïs.</p>
@@ -1661,6 +1668,41 @@
     let activeServei = null;     // string | null
     let searchQuery = '';
 
+    // ─── Filtres compartibles per URL ─────────────
+    // ?tipus=associacio&territori=cat&servei=sanitari&public=joves&q=...
+    // - Carregar: aplica els filtres de la query string a l'estat global.
+    // - Sincronitzar: cada cop que canvien els filtres reescriu la URL via
+    //   history.replaceState (sense afegir entry a l'historial). Això permet
+    //   compartir un enllaç directe a un filtre concret (ex: tot Trànsit a
+    //   Catalunya = ?ambit=salut&territori=cat).
+    const URL_FILTER_KEYS = ['tipus', 'territori', 'public', 'servei', 'q'];
+    function parseFiltersFromURL() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const t = params.get('tipus');     if (t && TIPUS_META[t]) activeTipus = t;
+        const r = params.get('territori'); if (r && TERRITORI_META[r]) activeTerritori = r;
+        const p = params.get('public');    if (p && PUBLICS_META[p]) activePublic = p;
+        const s = params.get('servei');    if (s && SERVEIS_META[s]) activeServei = s;
+        const q = params.get('q');         if (q) searchQuery = q.slice(0, 60);
+      } catch (_) {}
+    }
+    function syncURLFromFilters() {
+      try {
+        const params = new URLSearchParams(location.search);
+        URL_FILTER_KEYS.forEach(k => params.delete(k));
+        if (activeTipus)     params.set('tipus', activeTipus);
+        if (activeTerritori) params.set('territori', activeTerritori);
+        if (activePublic)    params.set('public', activePublic);
+        if (activeServei)    params.set('servei', activeServei);
+        if (searchQuery && searchQuery.trim().length >= 2) params.set('q', searchQuery.trim());
+        const qs = params.toString();
+        const newUrl = location.pathname + (qs ? '?' + qs : '') + location.hash;
+        if (newUrl !== location.pathname + location.search + location.hash) {
+          history.replaceState(null, '', newUrl);
+        }
+      } catch (_) {}
+    }
+
     // ─── Icons vista ──────────────────────────
     // El botó vista és sempre la icona de mapa (toggle: actiu/inactiu).
     const ICON_VIEW_MAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`;
@@ -1869,7 +1911,14 @@
         input.addEventListener('input', e => {
           clearTimeout(t);
           const v = e.target.value;
-          t = setTimeout(() => { searchQuery = v; renderAll(); updateAjudamCount(); }, 120);
+          t = setTimeout(() => {
+            searchQuery = v;
+            // Sincronitza amb el cercador de la vista mapa (existeix sempre).
+            const mapaInp = byId('mapa-entity-search-input');
+            if (mapaInp && mapaInp.value !== v) mapaInp.value = v;
+            renderAll();
+            updateAjudamCount();
+          }, 120);
         });
         // Restaura focus i caret si l'usuari estava escrivint (evita que es perdi
         // el focus a cada re-render del llistat).
@@ -1908,6 +1957,7 @@
         renderChoropleth();
         if (userLoc) updateResultList();
       }
+      syncURLFromFilters();
     }
 
     // Banner sobre el mapa que indica si hi ha filtres actius i el nº de
@@ -3326,6 +3376,29 @@
       });
     }
 
+    // ─── Cercador d'entitats a la vista mapa ─────
+    // Comparteix l'estat searchQuery amb el cercador del llistat. Tipiar
+    // aquí filtra markers + banner + llista de resultats; canviar de vista
+    // (mapa↔llista) preserva el text i la cerca està sincronitzada.
+    const mapaEntitySearch = byId('mapa-entity-search-input');
+    if (mapaEntitySearch) {
+      // Valor inicial: si la URL portava ?q=... o l'usuari ja estava cercant.
+      if (searchQuery) mapaEntitySearch.value = searchQuery;
+      attachSearchClear(mapaEntitySearch);
+      let mt;
+      mapaEntitySearch.addEventListener('input', e => {
+        clearTimeout(mt);
+        const v = e.target.value;
+        mt = setTimeout(() => {
+          searchQuery = v;
+          const llistaInp = byId('llista-search-input');
+          if (llistaInp && llistaInp.value !== v) llistaInp.value = v;
+          renderAll();
+          updateAjudamCount();
+        }, 120);
+      });
+    }
+
     // ─── Cercador de municipis + codi postal ─────
     // Centre del bounding box d'una geometria (polígon/multipolígon).
     // Aprox suficient per "volar" al municipi des del cercador.
@@ -3576,7 +3649,31 @@
     // ─── Service worker → shared/js/sw-register.js (afegit a la <head>)
 
     // ─── Inicialitza ──────────────────────────
+    // Llegeix els filtres de la query string ABANS de qualsevol render perquè
+    // la primera vista ja surti filtrada. Si l'enllaç té `?q=trans` també
+    // apareixerà al cercador del llistat.
+    parseFiltersFromURL();
     renderAjudamOpts();
+    // Si la URL portava `?public=joves` o equivalent, sincronitza els checks
+    // d'Ajuda'm perquè reflecteixin l'estat actual.
+    if (typeof AJUDAM_STATE === 'object') {
+      if (activeTipus) AJUDAM_STATE.tipus = activeTipus;
+      if (activeTerritori) AJUDAM_STATE.territori = activeTerritori;
+      if (activePublic) {
+        const pub = AJUDAM_OPTS.public.find(o => o.filter === activePublic);
+        if (pub) AJUDAM_STATE.public = pub.val;
+      }
+      if (activeServei) {
+        const srv = AJUDAM_OPTS.servei.find(o => o.filter === activeServei);
+        if (srv) AJUDAM_STATE.servei = srv.val;
+      }
+      if (typeof syncAjudamChecks === 'function') syncAjudamChecks();
+      // Marca visualment les opcions seleccionades dins del modal Ajuda'm
+      ajudamModal.querySelectorAll('.ajudam-opt').forEach(b => {
+        const q = b.parentElement && b.parentElement.dataset.q;
+        if (q && AJUDAM_STATE[q] === b.dataset.val) b.classList.add('selected');
+      });
+    }
     renderLlista();
     // La vista inicial la fixa `shared/js/start-home.js` (SharedStartHome)
     // a l'<head>, que reescriu la clau a 'llista' abans que cap codi la
