@@ -18,6 +18,14 @@ window.APP_CONFIG = {
     themeColor: '#ffffff'
   },
 
+  splash: {
+    // Allarguem el splash per a Transitem perquè doni temps a veure
+    // l'animació "sola"/"sol"/"soli" (la "i" es queda més estona, vegeu
+    // index.html). Default de SharedSplash és 2400ms.
+    autoDismissMs: 5000,
+    removeAfterMs: 1300
+  },
+
   onboarding: {
     version: '1',
     typewriter: false,

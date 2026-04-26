@@ -133,7 +133,7 @@
       display: inline-block;
       min-width: 0.55em;  /* evita "salts" entre "a"/""/i" */
       text-align: left;
-      transition: opacity 0.32s ease, transform 0.32s ease;
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
     #splash-rotator-suffix.is-fading {
       opacity: 0;
@@ -1407,25 +1407,31 @@
     // Rotator del sufix "sol*" al splash. La base "sol" no es mou; només la
     // última lletra fa fade: "sola" → "sol" (sense lletra durant el fade) →
     // "soli" → "sol" → "sola" → … Loop fins que SharedSplash es tanca.
+    // Dwells asimètrics: la "i" es queda més estona perquè es vegi bé.
     (function () {
-      const SUFFIXES = ['a', 'i'];     // alterna entre les dues lletres
-      const SWITCH_MS = 1400;          // freqüència de canvi
-      const FADE_MS = 320;             // ha de coincidir amb la transició CSS
+      const FORMS = [
+        { letter: 'a', dwell: 1200 },
+        { letter: 'i', dwell: 2200 },
+      ];
+      const FADE_MS = 500;             // ha de coincidir amb la transició CSS
       const el = document.getElementById('splash-rotator-suffix');
       if (!el) return;
       let i = 0, stopped = false;
+      let timer = null;
       function tick() {
         if (stopped || !el.isConnected) return;
-        el.classList.add('is-fading');   // fade out + buidem (queda "sol" sol)
-        setTimeout(() => {
+        el.classList.add('is-fading');   // fade out (queda "sol" sol)
+        timer = setTimeout(() => {
           if (stopped) return;
-          i = (i + 1) % SUFFIXES.length;
-          el.textContent = SUFFIXES[i];
+          i = (i + 1) % FORMS.length;
+          el.textContent = FORMS[i].letter;
           el.classList.remove('is-fading'); // fade in del nou sufix
+          timer = setTimeout(tick, FORMS[i].dwell);
         }, FADE_MS);
       }
-      const interval = setInterval(tick, SWITCH_MS);
-      const stop = () => { stopped = true; clearInterval(interval); };
+      // Primer tick: deixa veure "sola" durant el seu dwell, després rota.
+      timer = setTimeout(tick, FORMS[0].dwell);
+      const stop = () => { stopped = true; if (timer) clearTimeout(timer); };
       window.addEventListener('splash:dismiss', stop, { once: true });
     })();
   </script>
