@@ -882,6 +882,37 @@
     }
     .mapa-filter-clear:hover { background: rgba(255,255,255,0.4); }
     .mapa-filter-clear svg { width: 12px; height: 12px; display: block; }
+    /* Botó descarregar CSV al banner del mapa: mateix estil que el clear-X
+       però amb la fletxa↓ + barra. */
+    .mapa-filter-csv {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border: 0; border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .mapa-filter-csv:hover { background: rgba(255,255,255,0.4); }
+    .mapa-filter-csv svg { width: 13px; height: 13px; display: block; }
+    /* Botó descarregar CSV al títol del llistat. */
+    .btn-csv {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-left: 8px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--bg);
+      color: var(--ink-2);
+      font: inherit; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .btn-csv:hover { background: var(--pink-ink); color: #fff; border-color: var(--pink-ink); }
+    .btn-csv svg { width: 13px; height: 13px; display: block; }
+    html.dark .btn-csv { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
     /* Llista de recursos no visibles al mapa (sense coord o "Més enllà"):
        chips clicables sota el banner. */
     .mapa-offmap-list {
@@ -1512,6 +1543,9 @@
       </button>
       <div class="mapa-filter-banner" id="mapa-filter-banner" style="display:none">
         <span class="mapa-filter-text">recursos amb el filtre actiu</span>
+        <button class="mapa-filter-csv" id="mapa-filter-csv" type="button" title="Descarregar la llista filtrada en CSV" aria-label="Descarregar CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
         <button class="mapa-filter-clear" id="mapa-filter-clear" type="button" aria-label="Treu els filtres">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
@@ -1821,6 +1855,67 @@
       return r._search.includes(normSearch(q));
     }
 
+    // ─── Exportació CSV ─────────────────────────
+    // Genera un CSV (UTF-8 amb BOM perquè Excel obri els accents bé) amb la
+    // llista filtrada actual i dispara la descàrrega. Ús: `downloadFilteredCSV()`.
+    function downloadFilteredCSV() {
+      const rows = getFilteredRecursos();
+      if (!rows.length) return;
+      const cols = [
+        ['id', 'ID'],
+        ['nom', 'Nom'],
+        ['tipus', 'Tipus'],
+        ['territori', 'Territori'],
+        ['ambit', 'Àmbit'],
+        ['descripcio_breu', 'Descripció breu'],
+        ['per_a_que', 'Per a què serveix'],
+        ['ofereix', 'Què ofereix'],
+        ['per_a_qui', 'A qui s\'adreça'],
+        ['serveis', 'Serveis'],
+        ['adreca', 'Adreça'],
+        ['municipi', 'Municipi'],
+        ['comarca', 'Comarca'],
+        ['lat', 'Latitud'],
+        ['lon', 'Longitud'],
+        ['telefon', 'Telèfon'],
+        ['email', 'Email'],
+        ['web', 'Web'],
+        ['instagram', 'Instagram'],
+        ['facebook', 'Facebook'],
+        ['estat', 'Estat'],
+        ['notes', 'Notes'],
+      ];
+      const esc = v => {
+        if (v == null) return '';
+        if (Array.isArray(v)) v = v.join(' · ');
+        const s = String(v).replace(/\r?\n/g, ' ');
+        return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const lines = [];
+      lines.push(cols.map(c => esc(c[1])).join(';'));
+      rows.forEach(r => {
+        lines.push(cols.map(([key]) => {
+          // Devolvem valors RAW; l'escapatge l'aplica només la línia
+          // següent. (Abans esc() es cridava dos cops i sortia "" dobles.)
+          if (key === 'lat') return r.coord ? r.coord[0] : '';
+          if (key === 'lon') return r.coord ? r.coord[1] : '';
+          if (key === 'tipus') return (TIPUS_META[r.tipus] || {}).nom || r.tipus;
+          if (key === 'territori') return (TERRITORI_META[r.territori || 'cat'] || {}).nom || r.territori;
+          return r[key];
+        }).map(esc).join(';'));
+      });
+      // ﻿ = BOM perquè Excel detecti UTF-8.
+      const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const ts = new Date().toISOString().slice(0, 10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transitem-${ts}-${rows.length}recursos.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    }
+
     // Cache de la llista filtrada — invalida quan canvia qualsevol filtre o
     // la query. Hi ha 5+ llocs que filtraven el mateix dataset a cada
     // render; ara només es calcula una vegada per estat.
@@ -1875,7 +1970,10 @@
 
       const title = document.createElement('h2');
       title.className = 'llista-sec-title';
-      title.innerHTML = `Recursos <span class="llista-count" id="llista-count">${totalFiltered}<svg class="x-clear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>`;
+      title.innerHTML = `Recursos <span class="llista-count" id="llista-count">${totalFiltered}<svg class="x-clear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>` +
+        `<button type="button" class="btn-csv" id="btn-csv-llista" title="Descarregar la llista filtrada en CSV" aria-label="Descarregar CSV">` +
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>` +
+        `<span>CSV</span></button>`;
       rightCol.appendChild(title);
 
       const searchBar = document.createElement('div');
@@ -1885,6 +1983,10 @@
         <input type="search" id="llista-search-input" placeholder="Cerca recurs, municipi, paraula clau…" autocomplete="off" value="${escHtml(searchQuery)}">
       `;
       rightCol.appendChild(searchBar);
+
+      // Wire del botó CSV del llistat (acabat d'injectar via innerHTML).
+      const btnCsv = byId('btn-csv-llista');
+      if (btnCsv) btnCsv.addEventListener('click', e => { e.stopPropagation(); downloadFilteredCSV(); });
 
       let totalVisible = 0;
       // getFilteredRecursos() ja aplica filters + query un sol cop; aquí
@@ -2073,6 +2175,7 @@
       if (map) { map.invalidateSize(); fitStaticView(); }
     });
     // Treure tots els filtres actius des del banner del mapa
+    byId('mapa-filter-csv')?.addEventListener('click', () => downloadFilteredCSV());
     byId('mapa-filter-clear')?.addEventListener('click', () => {
       activeTipus = null;
       activeTerritori = null;
