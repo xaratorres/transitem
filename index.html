@@ -127,14 +127,15 @@
       color: rgba(255,255,255,0.95);
       max-width: 90vw;
     }
-    /* Paraula que rota al splash: "sola" → "sol" → "soli" amb fade. */
-    #splash-rotator {
+    /* Sufix que rota al splash: la base "sol" es manté quieta i només la
+       última lletra es fa un fade ("sola" → "sol" → "soli"). */
+    #splash-rotator-suffix {
       display: inline-block;
-      min-width: 2.6em; /* evita que "salti" l'amplada quan canvia "sol"↔"soli" */
-      text-align: center;
+      min-width: 0.55em;  /* evita "salts" entre "a"/""/i" */
+      text-align: left;
       transition: opacity 0.32s ease, transform 0.32s ease;
     }
-    #splash-rotator.is-fading {
+    #splash-rotator-suffix.is-fading {
       opacity: 0;
       transform: translateY(-3px);
     }
@@ -1398,30 +1399,29 @@
   <div id="splash">
     <div id="splash-inner">
       <div id="splash-t">Transitem</div>
-      <div id="splash-sub">No estàs <span id="splash-rotator" aria-live="polite">sola</span> en aquest procés.</div>
+      <div id="splash-sub">No estàs sol<span id="splash-rotator-suffix" aria-live="polite">a</span> en aquest procés.</div>
     </div>
     <div id="splash-hint">Toca per entrar</div>
   </div>
   <script>
-    // Rotator de la paraula "sola"/"sol"/"soli" mentre el splash és visible.
-    // Inline aquí per arrencar immediatament, abans que el bundle principal
-    // hagi carregat. Es deté quan SharedSplash dispara 'splash:dismiss' o
-    // quan #splash-rotator ja no és al DOM.
+    // Rotator del sufix "sol*" al splash. La base "sol" no es mou; només la
+    // última lletra fa fade: "sola" → "sol" (sense lletra durant el fade) →
+    // "soli" → "sol" → "sola" → … Loop fins que SharedSplash es tanca.
     (function () {
-      const FORMS = ['sola', 'sol', 'soli'];
-      const SWITCH_MS = 1400;   // freqüència de canvi
-      const FADE_MS = 320;      // ha de coincidir amb la transició CSS
-      const el = document.getElementById('splash-rotator');
+      const SUFFIXES = ['a', 'i'];     // alterna entre les dues lletres
+      const SWITCH_MS = 1400;          // freqüència de canvi
+      const FADE_MS = 320;             // ha de coincidir amb la transició CSS
+      const el = document.getElementById('splash-rotator-suffix');
       if (!el) return;
       let i = 0, stopped = false;
       function tick() {
         if (stopped || !el.isConnected) return;
-        el.classList.add('is-fading');
+        el.classList.add('is-fading');   // fade out + buidem (queda "sol" sol)
         setTimeout(() => {
           if (stopped) return;
-          i = (i + 1) % FORMS.length;
-          el.textContent = FORMS[i];
-          el.classList.remove('is-fading');
+          i = (i + 1) % SUFFIXES.length;
+          el.textContent = SUFFIXES[i];
+          el.classList.remove('is-fading'); // fade in del nou sufix
         }, FADE_MS);
       }
       const interval = setInterval(tick, SWITCH_MS);
