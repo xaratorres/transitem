@@ -190,13 +190,6 @@
       loader.style.opacity = '0';
       setTimeout(function () { loader.remove(); }, 280);
     }
-
-    // Exposat per a debug i per al test
-    window.Stealth = window.Stealth || {};
-    window.Stealth.loader = {
-      unlock: unlock,
-      setProgress: function (p) { progress = p; displayed = p; setVisual(p); },
-    };
   }
 
   inject();

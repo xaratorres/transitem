@@ -1829,7 +1829,7 @@
           const s = sRaw.length > 5 ? sRaw.slice(0, 4) : sRaw;
           const loc = r.municipi ? (r.municipi + (r.comarca ? ' · ' + r.comarca : '')) : 'Online / estatal';
           it.innerHTML = `
-            <div class="entitat-ico ico-len-${Math.min(s.length, 5)}">${escHtml(s)}</div>
+            <div class="entitat-ico${s.length > 1 ? ' ico-len-' + Math.min(s.length, 5) : ''}">${escHtml(s)}</div>
             <div class="entitat-info">
               <div class="entitat-nom">${hl(r.nom, q)}</div>
               <div class="entitat-ambit">${hl(r.ambit, q)}</div>
@@ -1950,12 +1950,7 @@
       if (!anyFilter) { host.style.display = 'none'; host.innerHTML = ''; return; }
       const matched = getFilteredRecursos();
       // Recursos sense coord o amb coord fora dels PPCC (no es renderitzen al mapa).
-      const offmap = matched.filter(r => {
-        if (!r.coord) return true;
-        const [lat, lon] = r.coord;
-        return !(lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
-          && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1]);
-      });
+      const offmap = matched.filter(r => !r.coord || !inPPCCBounds(r.coord[0], r.coord[1]));
       if (!offmap.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
       host.innerHTML = offmap.slice(0, 12).map(r => {
         const color = (TIPUS_META[r.tipus] || {}).color || 'var(--ink-3)';
@@ -2235,6 +2230,10 @@
     // Tolerància lat/lon (en graus) per considerar dos markers a la mateixa
     // posició. ~110 m a latitud mediterrània.
     const MARKER_LATLNG_EPS = 0.001;
+    // Helper compartit: està el punt dins del bounding box del mapa?
+    const inPPCCBounds = (lat, lon) =>
+      lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
+      && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1];
     let municipisFeatures = null;  // cache del GeoJSON convertit
     let provinciesFeatures = null; // cache capa províncies espanyoles (no-CAT)
     let esCatalanMunis = null;     // municipis Balears + PV extrets del es-atlas
@@ -3249,9 +3248,7 @@
           const lat = parseFloat(el.dataset.lat);
           const lon = parseFloat(el.dataset.lon);
           if (isNaN(lat) || isNaN(lon)) return;
-          const inBounds = lat >= PPCC_MAX_BOUNDS[0][0] && lat <= PPCC_MAX_BOUNDS[1][0]
-            && lon >= PPCC_MAX_BOUNDS[0][1] && lon <= PPCC_MAX_BOUNDS[1][1];
-          if (!inBounds) {
+          if (!inPPCCBounds(lat, lon)) {
             openFitxa(el.dataset.id);
             return;
           }

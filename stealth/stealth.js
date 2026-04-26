@@ -177,66 +177,11 @@
     mfDefault.href = 'manifest.json';
   }
 
-  // 2. SELECTOR (UI)
-  function openSelector() {
-    if (document.getElementById('stealth-modal')) return;
-    var ov = document.createElement('div');
-    ov.id = 'stealth-modal';
-    ov.className = 'stealth-overlay';
-    ov.innerHTML = [
-      '<div class="stealth-dialog" role="dialog" aria-label="Triar icona de disfressa">',
-      '  <button class="stealth-close" aria-label="Tancar">×</button>',
-      '  <h2>Disfressa de la icona</h2>',
-      '  <p class="stealth-intro">Tria una icona i nom alternatius per a l\'app. Útil si vols que la teva pantalla d\'inici no reveli que tens una eina trans.</p>',
-      '  <div class="stealth-grid">',
-      '    <button class="stealth-opt" data-key="">',
-      '      <div class="stealth-icon stealth-icon-default"></div>',
-      '      <span>Transitem<small>(per defecte)</small></span>',
-      '    </button>',
-      Object.keys(DISGUISES).map(function (k) {
-        var d = DISGUISES[k];
-        return '<button class="stealth-opt" data-key="' + k + '">' +
-          '<img class="stealth-icon" src="' + BASE + d.icon192 + '" alt="">' +
-          '<span>' + d.label + '</span>' +
-          '</button>';
-      }).join(''),
-      '  </div>',
-      '  <p class="stealth-note"><strong>Important:</strong> Si ja tens l\'app instal·lada al dispositiu, hauràs de desinstal·lar-la i tornar-la a instal·lar des del navegador per veure la nova icona. Si encara no està instal·lada, tria primer i instal·la després.</p>',
-      '</div>',
-    ].join('');
-    document.body.appendChild(ov);
-
-    function close() { ov.remove(); }
-    ov.addEventListener('click', function (e) {
-      if (e.target === ov) close();
-    });
-    ov.querySelector('.stealth-close').addEventListener('click', close);
-
-    var current = readChoice();
-    ov.querySelectorAll('.stealth-opt').forEach(function (btn) {
-      var k = btn.getAttribute('data-key');
-      if ((k || '') === (current || '')) btn.classList.add('is-active');
-      btn.addEventListener('click', function () {
-        var key = btn.getAttribute('data-key') || null;
-        writeChoice(key);
-        // Reapliquem o restablim sense recarregar
-        if (key && DISGUISES[key]) {
-          applyDisguise(key);
-        } else {
-          // Restablir: més fiable amb una recàrrega
-          location.reload();
-          return;
-        }
-        close();
-      });
-    });
-  }
-
-  // 3. API pública
+  // API pública: només `current()` és consumida des de fora (per
+  // `loader.js` i `install-flow.js`). El selector built-in que hi havia
+  // aquí era codi mort — el flux real d'instal·lació té el seu propi
+  // selector a `install-flow.js > showStep2`.
   window.Stealth = {
-    open: openSelector,
-    openSelector: openSelector,
     current: function () { return readChoice(); },
-    list: function () { return Object.keys(DISGUISES); },
   };
 })();
