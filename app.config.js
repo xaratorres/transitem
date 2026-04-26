@@ -32,7 +32,7 @@ window.APP_CONFIG = {
     intro: 'Transitem.cat és un directori pràctic i obert de recursos per a persones trans i no binàries als territoris de parla catalana: serveis públics, associacions, col·lectius i grups de suport que acompanyen el camí de descoberta o la transició.',
     sections: [
       { title: 'Com funciona', body: "Cada fitxa explica per a què serveix, a qui s'adreça, què ofereix, i té dades de contacte directes. Si no saps per on començar, obre Ajuda'm i respon les preguntes — et filtrarem els recursos que encaixen millor amb tu." },
-      { title: 'Per qui', body: "El projecte és també per a famílies, parelles, amistats i entorn. Ningú està sol/a en aquest procés." },
+      { title: 'Per a qui', body: "El projecte és també per a famílies, parelles, amistats i entorn. Ningú està sol/a en aquest procés." },
       { title: 'Responsabilitat', body: 'Les entitats llistades són de tercers. Transitem només agrega la informació i enllaça cap a les fonts originals.' }
     ]
   },
