@@ -569,6 +569,10 @@
       max-height: 240px; overflow-y: auto;
       box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     }
+    /* Quan el sugs ha estat "tret" del sidebar i reparenta'l al body, fixem
+       posició + z-index alt perquè se superposi al mapa. Abans aquests estils
+       s'aplicaven via JS inline. */
+    #mapa-search-sugs.sugs-floating { position: fixed; z-index: 10000; }
     html.dark #mapa-search-sugs { background: #1c1c1e; border-color: rgba(255,255,255,0.1); }
     #mapa-search-sugs button {
       display: block; width: 100%; text-align: left;
@@ -779,6 +783,57 @@
     .popup-nom { font-weight: 700; font-size: 0.92rem; margin-bottom: 3px; }
     .popup-muni { color: var(--ink-3); font-size: 0.78rem; margin-bottom: 6px; }
     .popup-btn { color: var(--pink-ink); font-weight: 600; font-size: 0.82rem; cursor: pointer; }
+    /* Estats i ítems del popup */
+    .popup-empty { color: var(--ink-3); font-size: 0.78rem; margin-top: 4px; }
+    .popup-overflow { color: var(--ink-3); font-size: 0.72rem; }
+    .popup-item-muni { color: var(--ink-3); font-size: 0.7rem; }
+    /* Botó "Situar-me aquí" del popup territorial — abans estil inline x5 */
+    .popup-locate-wrap {
+      margin-top: 8px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding-top: 8px;
+    }
+    .popup-locate {
+      width: 100%;
+      padding: 6px;
+      border: 0; border-radius: 6px;
+      background: linear-gradient(90deg, var(--blue), var(--pink));
+      color: #fff;
+      font-weight: 700; font-size: 0.78rem;
+      cursor: pointer;
+    }
+    /* Variants del .popup-btn dels popups dels markers de recursos */
+    .popup-btn-inline { margin-top: 6px; display: inline-block; }
+    .popup-btn-row {
+      padding: 4px 0;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      text-align: left;
+    }
+    .popup-list {
+      margin-top: 6px;
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 240px; overflow-y: auto;
+    }
+    /* Marker de recurs (dot) i variant amb badge per a co-ubicacions */
+    .transitem-marker-dot {
+      position: relative;
+      width: var(--dot-size);
+      height: var(--dot-size);
+    }
+    .transitem-marker-dot::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--dot-bg);
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .transitem-marker.is-multi .transitem-marker-dot::before { border-width: 2px; }
+    .transitem-marker-badge {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 10px; font-weight: 800; line-height: 1;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
 
     /* Botó de reposicionar el mapa (canta superior-esquerre, dins del mapa) */
     .mapa-reset-btn {
@@ -2498,24 +2553,34 @@
       let html = `<div class="popup-nom">${titleHTML}</div>`;
       html += `<div class="popup-muni">${escHtml(subText || '')}</div>`;
       if (!list.length) {
-        html += '<div style="color:var(--ink-3);font-size:0.78rem;margin-top:4px">Sense recursos al directori</div>';
+        html += '<div class="popup-empty">Sense recursos al directori</div>';
       } else {
-        html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">';
+        html += '<div class="popup-list">';
         list.slice(0, 10).forEach(r => {
           const muniSuffix = itemShowMunicipi && r.municipi
-            ? ` <span style="color:var(--ink-3);font-size:0.7rem">· ${escHtml(r.municipi)}</span>`
+            ? ` <span class="popup-item-muni">· ${escHtml(r.municipi)}</span>`
             : '';
-          html += `<span class="popup-btn" data-id="${r.id}" style="padding:3px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}${muniSuffix}</span>`;
+          html += `<span class="popup-btn popup-btn-row" data-id="${r.id}">→ ${escHtml(r.nom)}${muniSuffix}</span>`;
         });
         if (showOverflowCap !== false && list.length > 10) {
-          html += `<div style="color:var(--ink-3);font-size:0.72rem">+${list.length - 10} més…</div>`;
+          html += `<div class="popup-overflow">+${list.length - 10} més…</div>`;
         }
         html += '</div>';
       }
-      html += `<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);padding-top:8px"><button type="button" class="popup-locate" style="width:100%;padding:6px;border:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--pink));color:#fff;font-weight:700;font-size:0.78rem;cursor:pointer">${locateButtonText}</button></div>`;
+      html += `<div class="popup-locate-wrap"><button type="button" class="popup-locate">${locateButtonText}</button></div>`;
       return html;
     }
+    // Cablejat dels .popup-btn dins del contingut del popup → obrir fitxa.
+    // Reutilitzable per a qualsevol layer/marker que tingui aquests botons.
+    function wirePopupBtnClicks(layerOrMarker) {
+      layerOrMarker.on('popupopen', e => {
+        e.popup._contentNode.querySelectorAll('.popup-btn').forEach(btn => {
+          btn.addEventListener('click', () => openFitxa(btn.dataset.id));
+        });
+      });
+    }
     function wireMuniPopupHandlers(layer, getLocateLabel) {
+      // Reutilitza el wiring genèric i afegeix el botó "Situar-me aquí".
       layer.on('popupopen', e => {
         const root = e.popup._contentNode;
         root.querySelectorAll('.popup-btn').forEach(btn => {
@@ -3034,38 +3099,30 @@
       Object.entries(byCoord).forEach(([key, group]) => {
         const r0 = group[0];
         const color = TIPUS_META[r0.tipus].color;
-        // Dot petit (10px) per a 1 recurs; dot lleugerament més gran amb comptador si n'hi ha múltiples
         const isMulti = group.length > 1;
         const size = isMulti ? 18 : 10;
-        const badge = isMulti ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.5)">${group.length}</div>` : '';
         const icon = L.divIcon({
-          className: 'transitem-marker',
-          html: `<div style="position:relative;width:${size}px;height:${size}px"><div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:${isMulti ? 2 : 1.5}px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>${badge}</div>`,
+          className: 'transitem-marker' + (isMulti ? ' is-multi' : ''),
+          html: `<div class="transitem-marker-dot" style="--dot-bg:${color};--dot-size:${size}px">${isMulti ? `<div class="transitem-marker-badge">${group.length}</div>` : ''}</div>`,
           iconSize: [size, size],
           iconAnchor: [size/2, size/2],
         });
         const marker = L.marker(r0.coord, { icon }).addTo(map);
-        // Popup amb la llista (si n'hi ha més d'un) o la fitxa ràpida
         let html;
         if (group.length === 1) {
-          html = `<div class="popup-nom">${escHtml(r0.nom)}</div>
-            <div class="popup-muni">${escHtml(r0.municipi || '')}${r0.comarca ? ' · ' + escHtml(r0.comarca) : ''}</div>
-            <span class="popup-btn" data-id="${r0.id}" style="margin-top:6px;display:inline-block">Veure fitxa →</span>`;
+          html = `<div class="popup-nom">${escHtml(r0.nom)}</div>`
+            + `<div class="popup-muni">${escHtml(r0.municipi || '')}${r0.comarca ? ' · ' + escHtml(r0.comarca) : ''}</div>`
+            + `<span class="popup-btn popup-btn-inline" data-id="${r0.id}">Veure fitxa →</span>`;
         } else {
-          html = `<div class="popup-nom">${escHtml(r0.municipi || 'Recursos aquí')} <span style="background:#0a0a0a;color:#fff;padding:1px 8px;border-radius:100px;font-size:0.7rem;margin-left:4px">${group.length}</span></div>
-            <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto">`;
+          html = `<div class="popup-nom">${escHtml(r0.municipi || 'Recursos aquí')}${badgeHTML(group.length, '#0a0a0a')}</div>`
+            + `<div class="popup-list">`;
           group.forEach(r => {
-            html += `<span class="popup-btn" data-id="${r.id}" style="padding:4px 0;border-top:1px solid rgba(0,0,0,0.08);text-align:left">→ ${escHtml(r.nom)}</span>`;
+            html += `<span class="popup-btn popup-btn-row" data-id="${r.id}">→ ${escHtml(r.nom)}</span>`;
           });
           html += '</div>';
         }
         marker.bindPopup(html);
-        marker.on('popupopen', e => {
-          const btns = e.popup._contentNode.querySelectorAll('.popup-btn');
-          btns.forEach(btn => btn.addEventListener('click', () => {
-            openFitxa(btn.dataset.id);
-          }));
-        });
+        wirePopupBtnClicks(marker);
         extraMarkers.push(marker);
       });
     }
@@ -3365,8 +3422,7 @@
     // sobre el mapa.
     if (searchSugs && searchSugs.parentElement !== document.body) {
       document.body.appendChild(searchSugs);
-      searchSugs.style.position = 'fixed';
-      searchSugs.style.zIndex = '10000';
+      searchSugs.classList.add('sugs-floating');
     }
     function positionSugs() {
       if (!searchInput || !searchSugs) return;
