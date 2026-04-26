@@ -22,10 +22,11 @@
  *   </div>
  *
  * API:
- *   window.SharedOnboarding.maybeStart()      — mostra si no s'ha vist
- *   window.SharedOnboarding.show(mode)        — força mostrar; mode='splash'|'reopen'
+ *   window.SharedOnboarding.maybeStart()      — splash si null; changelog si versió ≠
+ *   window.SharedOnboarding.show(mode)        — força mostrar; mode='splash'|'reopen'|'changelog'
  *   window.SharedOnboarding.markSeen()        — marca vist sense mostrar
  *   window.SharedOnboarding.isSeen()          — getter
+ *   window.SharedOnboarding.lastSeenVersion() — versió que va acceptar l'usuari (o null)
  *
  * Configuració via APP_CONFIG.onboarding:
  *   version       string  — bump per re-mostrar a usuaris
@@ -40,7 +41,15 @@
   const meta = (window.APP_CONFIG && window.APP_CONFIG.meta) || {};
 
   const VERSION = cfg.version || '1';
-  const STORAGE_KEY = `${meta.storagePrefix || 'app'}-onboarded-v${VERSION}`;
+  // Storage:
+  //  - LEGACY: `${prefix}-onboarded-v${VERSION}` (un per versió). El conservem
+  //    només per detectar si un usuari ja havia vist alguna versió, perquè el
+  //    pas a versió "X" no es vegi sempre com a primera-vegada.
+  //  - NOU:    `${prefix}-onboarded-version` = darrera versió acceptada per
+  //    l'usuari. Permet decidir entre splash (null) i changelog (≠ actual).
+  const PREFIX = meta.storagePrefix || 'app';
+  const STORAGE_KEY = `${PREFIX}-onboarded-v${VERSION}`;
+  const LAST_SEEN_KEY = `${PREFIX}-onboarded-version`;
   const BUTTON_LABEL = cfg.buttonLabel || 'Entesos';
   const TYPEWRITER = !!cfg.typewriter;
   const OVERLAY_ID = cfg.overlayId || 'overlay-onboarding';
@@ -56,10 +65,43 @@
   const PARAGRAPHS = normalizeParagraphs();
 
   function isSeen() {
-    try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch (_) { return false; }
+    try {
+      // Acceptem qualsevol marcador (legacy o nou) com a "ja he vist alguna
+      // versió". El changelog farà servir lastSeenVersion() per detectar la
+      // versió concreta i mostrar només les novetats posteriors.
+      if (localStorage.getItem(STORAGE_KEY) === '1') return true;
+      if (localStorage.getItem(LAST_SEEN_KEY)) return true;
+      return false;
+    } catch (_) { return false; }
   }
   function markSeen() {
-    try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
+    try {
+      localStorage.setItem(STORAGE_KEY, '1');
+      localStorage.setItem(LAST_SEEN_KEY, VERSION);
+    } catch (_) {}
+  }
+  // Versió que l'usuari va acceptar per última vegada. Migració: si només té
+  // les keys legacy `${prefix}-onboarded-v${X}=1`, n'agafem la més antiga (els
+  // keys legacy són per VERSION concreta; assumim que si va veure v1 i no
+  // tenim v2, la última vista és v1).
+  function lastSeenVersion() {
+    try {
+      const v = localStorage.getItem(LAST_SEEN_KEY);
+      if (v) return v;
+      // Migració: primera key legacy que trobem
+      const re = new RegExp('^' + PREFIX + '\\-onboarded\\-v(.+)$');
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k !== LAST_SEEN_KEY) {
+          const m = k.match(re);
+          if (m && localStorage.getItem(k) === '1') {
+            try { localStorage.setItem(LAST_SEEN_KEY, m[1]); } catch (_) {}
+            return m[1];
+          }
+        }
+      }
+      return null;
+    } catch (_) { return null; }
   }
 
   function getOverlay() { return document.getElementById(OVERLAY_ID); }
@@ -145,6 +187,37 @@
     })();
   }
 
+  // ─── Render changelog ───────────────────────────────
+  // Mode 'changelog': substitueix #onboarding-text per la llista de novetats
+  // de les versions posteriors a la última vista per l'usuari.
+  function escAttr(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function renderChangelog(entries) {
+    const el = getTextEl();
+    if (!el) return;
+    if (!entries || !entries.length) {
+      el.innerHTML = '<p class="onboarding-changelog-empty">Millores internes, correccions i ajustos tècnics que no afecten l\'ús del web.</p>';
+      return;
+    }
+    let html = '<h3 class="onboarding-changelog-title">Què hi ha de nou</h3>';
+    entries.forEach(entry => {
+      html += '<div class="onboarding-changelog-entry">';
+      html += `<div class="onboarding-changelog-meta"><strong>v${escAttr(entry.version)}</strong> <span>· ${escAttr(entry.date || '')}</span></div>`;
+      if (entry.items && entry.items.length) {
+        html += '<ul class="onboarding-changelog-items">';
+        entry.items.forEach(item => { html += `<li>${escAttr(item)}</li>`; });
+        html += '</ul>';
+      } else {
+        html += '<p class="onboarding-changelog-fallback">Millores internes i correccions.</p>';
+      }
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  }
+
   // ─── Show / close ───────────────────────────────────
   function show(mode) {
     mode = mode || 'splash';
@@ -154,13 +227,24 @@
 
     // Toggle classe 'splash' (Ciutadata l'usa per estilitzar el primer cop)
     ov.classList.toggle('splash', mode === 'splash');
+    ov.classList.toggle('changelog', mode === 'changelog');
     ov.classList.add('open');
     ov.setAttribute('aria-hidden', 'false');
 
     const btn = getButton();
     const footerTancar = getFooterTancar();
 
-    if (mode === 'reopen') {
+    if (mode === 'changelog') {
+      // Mode changelog: render directe de bullets, sense typewriter.
+      if (btn) {
+        btn.style.display = '';
+        btn.classList.add('visible');
+        btn.textContent = BUTTON_LABEL;
+      }
+      if (footerTancar) footerTancar.style.display = 'none';
+      const entries = (window.SharedChangelog && SharedChangelog.entriesSince(lastSeenVersion())) || [];
+      renderChangelog(entries);
+    } else if (mode === 'reopen') {
       // Mode reopen: render directe, sense typewriter, sense btn Entesos
       if (btn) btn.style.display = 'none';
       if (footerTancar) footerTancar.style.display = '';
@@ -212,8 +296,22 @@
   }
 
   function maybeStart() {
-    if (isSeen()) return;
-    show('splash');
+    const last = lastSeenVersion();
+    if (!last) {
+      // Primera vegada: tutorial complet de benvinguda.
+      show('splash');
+      return;
+    }
+    // Ja ha vist alguna versió. Si la nova és diferent i hi ha changelog
+    // amb entries posteriors, mostrem-li el resum de novetats.
+    if (last !== VERSION && window.SharedChangelog) {
+      const entries = SharedChangelog.entriesSince(last);
+      if (entries.length) {
+        show('changelog');
+        return;
+      }
+    }
+    // Mateixa versió o canvis sense entries: no mostrem res.
   }
 
   // Auto-marca com a vist a qualsevol forma de tancament via SharedOverlay
@@ -248,5 +346,5 @@
     initFallbackHandlers();
   }
 
-  window.SharedOnboarding = { maybeStart, show, markSeen, isSeen, close };
+  window.SharedOnboarding = { maybeStart, show, markSeen, isSeen, close, lastSeenVersion };
 })();

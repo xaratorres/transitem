@@ -58,12 +58,16 @@
   <link rel="stylesheet" href="./shared/css/modals.css">
   <link rel="stylesheet" href="./shared/css/category-group.css">
   <link rel="stylesheet" href="./shared/css/collapsible.css">
+  <link rel="stylesheet" href="./shared/css/onboarding-changelog.css">
   <link rel="stylesheet" href="./shared/css/search.css">
   <script src="./shared/js/overlay.js" defer></script>
   <script src="./shared/js/theme.js" defer></script>
   <script src="./shared/js/splash.js" defer></script>
   <script src="./shared/js/install-prompt.js" defer></script>
   <script src="./shared/js/sw-register.js" defer></script>
+  <!-- changelog.js abans d'onboarding.js perquè aquest pugui consultar
+       SharedChangelog.entriesSince() al maybeStart. -->
+  <script src="./shared/js/changelog.js" defer></script>
   <script src="./shared/js/onboarding.js" defer></script>
   <script src="./shared/js/about-modal.js" defer></script>
   <script src="./shared/js/legal-kit.js" defer></script>

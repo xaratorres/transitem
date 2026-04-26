@@ -27,7 +27,7 @@ window.APP_CONFIG = {
   },
 
   onboarding: {
-    version: '1',
+    version: '0.3',
     typewriter: false,
     // body buit: el contingut HTML inline a #onboarding-text té estils
     // específics (hint-ajudam, fase de revisió) no suportats encara per
@@ -35,6 +35,25 @@ window.APP_CONFIG = {
     body: [],
     buttonLabel: 'Entesos'
   },
+
+  // Llegit per shared/js/changelog.js (auto-registre). Ordenat de més nou
+  // a més antic. Bumpa `onboarding.version` quan afegeixis una entry nova,
+  // i als usuaris que ja havien acceptat la versió anterior se'ls mostrarà
+  // el modal en mode 'changelog' amb només les noves bullets.
+  changelog: [
+    {
+      version: '0.3',
+      date: '2026-04-27',
+      items: [
+        'Cerca d\'entitats també a la vista mapa, sincronitzada amb la del llistat',
+        'Compartir un filtre concret per URL (ex: ?territori=cat&servei=sanitari)',
+        'Botó "↓ CSV" per descarregar la llista filtrada al teu ordinador',
+        'Mapa: títol "Transitem" clicable per tornar a inici, amb millor centrat i pinch-zoom controlat a mòbil',
+        'Cerca insensible a accents (escriu "transit" o "tràns" igual)',
+        'Animació nova al splash i botó X de tancament millorat als modals'
+      ]
+    }
+  ],
 
   about: {
     intro: 'Transitem.cat és un directori pràctic i obert de recursos per a persones trans i no binàries als territoris de parla catalana: serveis públics, associacions, col·lectius i grups de suport que acompanyen el camí de descoberta o la transició.',
