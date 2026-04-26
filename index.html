@@ -951,10 +951,13 @@
       .mapa-reset-btn { top: 8px; left: 8px; width: 34px; height: 34px; }
     }
 
-    /* Llegenda del mapa (dins del mapa-container, al cantó superior-dret sobre el mar) */
+    /* Llegenda del mapa: cantó inferior-dret, sobre el mar prop de Sardenya/
+       Còrsega. Abans estava a dalt-dreta i tapava el botó X del banner de
+       filtres actius. Bottom 36px per deixar lliure l'attribution row de
+       Leaflet (bottomright). */
     .mapa-legend {
       position: absolute;
-      top: 12px; right: 12px;
+      bottom: 36px; right: 12px;
       z-index: 500;
       background: rgba(255,255,255,0.96);
       backdrop-filter: blur(6px);
