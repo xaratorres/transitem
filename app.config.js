@@ -27,7 +27,7 @@ window.APP_CONFIG = {
   },
 
   onboarding: {
-    version: '0.3',
+    version: '0.4',
     typewriter: false,
     // body buit: el contingut HTML inline a #onboarding-text té estils
     // específics (hint-ajudam, fase de revisió) no suportats encara per
@@ -41,6 +41,14 @@ window.APP_CONFIG = {
   // i als usuaris que ja havien acceptat la versió anterior se'ls mostrarà
   // el modal en mode 'changelog' amb només les noves bullets.
   changelog: [
+    {
+      version: '0.4',
+      date: '2026-04-27',
+      items: [
+        'Dues categories noves: Legal (lleis i normes) i Guia / protocol (tràmits oficials, protocols educatius)',
+        '9 nous recursos: 4 lleis (Catalunya 19/2020, 17/2020, 13/2025; estatal 4/2023) i 5 guies (targeta amb nom sentit, protocol alumnat trans, denúncia per discriminació, AOC, protocols violència àmbit educatiu)'
+      ]
+    },
     {
       version: '0.3',
       date: '2026-04-27',
