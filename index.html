@@ -1273,6 +1273,29 @@
     .sobre-cos p { font-size: 0.88rem; line-height: 1.5; color: var(--ink-2); margin-bottom: 0.55rem; }
     .sobre-cos p:last-child { margin-bottom: 0; }
 
+    /* CTA "Guia ràpida d'ús" — botó destacat al modal Sobre */
+    .sobre-guia-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 1rem 0 0;
+      padding: 0.8rem 1rem;
+      background: linear-gradient(90deg, var(--blue) 0 50%, var(--pink) 50% 100%);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(200, 62, 108, 0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sobre-guia-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(200, 62, 108, 0.28); filter: brightness(1.05); }
+    .sobre-guia-btn:active { transform: translateY(0); filter: brightness(0.95); }
+    .sobre-guia-btn svg { flex-shrink: 0; }
+    html.dark .sobre-guia-btn { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); }
+
     /* ── Config (versió compacta estil Denunciem) ── */
     #overlay-config .modal { padding: 1.3rem 1.5rem 1rem; }
     #overlay-config .modal h2 { font-size: 1.25rem; margin-bottom: 0.8rem; }
@@ -1635,6 +1658,12 @@
       <h2 style="text-align:center">Sobre Transitem</h2>
       <!-- contingut renderitzat pel shared/js/about-modal.js des de app.config.about -->
       <div class="sobre-cos"></div>
+      <a class="sobre-guia-btn" href="./guia.html" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+        <span>Guia ràpida d'ús</span>
+      </a>
       <p class="sobre-dedicatoria">Dedicat a <strong>Clara Palau</strong> i <strong>Tina Recio</strong> per tot el que estan fent</p>
       <div class="modal-footer"><small>Països Catalans · v0.2 · 2026</small></div>
     </div>

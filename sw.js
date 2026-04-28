@@ -19,14 +19,15 @@ self.addEventListener('fetch', e => {
 });
 
 buildSW({
-  cacheName: 'transitem-v52',
+  cacheName: 'transitem-v53',
 
   // Fitxers que canvien sovint → network-first amb timeout 2.5s
   core: [
     './',
     './index.html',
     './app.config.js',
-    './recursos.js'
+    './recursos.js',
+    './guia.html'
   ],
 
   // Fitxers estables → cache-first
