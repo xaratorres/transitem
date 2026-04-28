@@ -33,7 +33,7 @@ window.APP_CONFIG = {
     // específics (hint-ajudam, fase de revisió) no suportats encara per
     // segments. SharedOnboarding respecta el HTML inline si body és [].
     body: [],
-    buttonLabel: 'Entesos'
+    buttonLabel: 'Entès'
   },
 
   // Llegit per shared/js/changelog.js (auto-registre). Ordenat de més nou

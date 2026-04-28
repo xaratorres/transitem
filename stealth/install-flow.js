@@ -132,7 +132,7 @@
       '<p class="stealth-note stealth-note-info"><strong>Tranquil·la:</strong> esborrar les dades de l\'app no afecta la web. Podràs seguir consultant <strong>transitem.cat</strong> des del navegador.</p>',
       '<div class="stealth-actions">',
       '  <button class="stealth-btn-secondary" data-act="back">Enrere</button>',
-      '  <button class="stealth-btn-primary" data-act="ok">Entesos</button>',
+      '  <button class="stealth-btn-primary" data-act="ok">Entès</button>',
       '</div>',
     ].join('');
     body.querySelector('[data-act="back"]').addEventListener('click', showInstalledChangeIcon);
@@ -216,7 +216,7 @@
       '<p class="stealth-intro">Un cop recarregada, ves a Configuració → "Afegir a l\'escriptori" i prem "Instal·lar". Et tornarà a preguntar si vols mode incògnit.</p>',
       '<p class="stealth-note"><strong>Pista:</strong> guarda la teva tria <em>(' + name + ')</em> per recordar-la quan tornis.</p>',
       '<div class="stealth-actions">',
-      '  <button class="stealth-btn-primary" data-act="ok">Entesos</button>',
+      '  <button class="stealth-btn-primary" data-act="ok">Entès</button>',
       '</div>',
     ].join('');
     body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
@@ -350,7 +350,7 @@
       current ? ' La icona actual és <strong>' + DISGUISES[current].label + '</strong>.' : '',
       '</p>',
       '<p class="stealth-note"><strong>Per canviar la icona:</strong> desinstal·la l\'app del dispositiu, <strong>recarrega aquesta pàgina al navegador</strong> per netejar la memòria cau, i torna a instal·lar triant una altra opció. Sense la recàrrega, el navegador faria servir la icona antiga.</p>',
-      '<div class="stealth-actions"><button class="stealth-btn-primary" data-act="ok">Entesos</button></div>',
+      '<div class="stealth-actions"><button class="stealth-btn-primary" data-act="ok">Entès</button></div>',
     ].join('');
     body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
   }
@@ -399,7 +399,7 @@
       steps.map(function (s) { return '<li>' + s + '</li>'; }).join(''),
       '</ol>',
       current ? '<p class="stealth-note"><strong>Important:</strong> al menú del navegador veuràs el nom <strong>' + name + '</strong>, no "Transitem". Aquesta és la disfressa que has triat.</p>' : '',
-      '<div class="stealth-actions"><button class="stealth-btn-primary" data-act="ok">Entesos</button></div>',
+      '<div class="stealth-actions"><button class="stealth-btn-primary" data-act="ok">Entès</button></div>',
     ].join('');
     body.querySelector('[data-act="ok"]').addEventListener('click', closeModal);
   }
